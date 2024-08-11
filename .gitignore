@@ -1,7 +1,8 @@
+models
 *.class
 *.lst
 .idea/*
 *.iml
 *.xml
 *.pyc
-
+*.tar.gz
