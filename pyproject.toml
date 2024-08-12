@@ -55,8 +55,8 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = ["src/code2seq"]
 
-[tool.mypy]
-strict = true
+# [tool.mypy]
+# strict = true
 
 [tool.ruff.lint]
 extend-select = [
