@@ -104,7 +104,7 @@ class Model:
         print(
             "Number of trainable params:",
             np.sum(
-                [np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]
+                [np.prod(v.get_shape().as_list()) for v in tf.compat.v1.trainable_variables()]
             ),
         )
         self.initialize_session_variables(self.sess)
@@ -498,29 +498,29 @@ class Model:
         path_lengths = input_tensors[reader.PATH_LENGTHS_KEY]
         path_target_lengths = input_tensors[reader.PATH_TARGET_LENGTHS_KEY]
 
-        with tf.variable_scope("model"):
-            subtoken_vocab = tf.get_variable(
+        with tf.compat.v1.variable_scope("model"):
+            subtoken_vocab = tf.compat.v1.get_variable(
                 "SUBTOKENS_VOCAB",
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
-                initializer=tf.contrib.layers.variance_scaling_initializer(
-                    factor=1.0, mode="FAN_OUT", uniform=True
+                initializer=tf.compat.v1.keras.initializers.VarianceScaling(
+                    scale=1.0, mode=("FAN_OUT").lower(), distribution=("uniform" if True else "truncated_normal")
                 ),
             )
-            target_words_vocab = tf.get_variable(
+            target_words_vocab = tf.compat.v1.get_variable(
                 "TARGET_WORDS_VOCAB",
                 shape=(self.target_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
-                initializer=tf.contrib.layers.variance_scaling_initializer(
-                    factor=1.0, mode="FAN_OUT", uniform=True
+                initializer=tf.compat.v1.keras.initializers.VarianceScaling(
+                    scale=1.0, mode=("FAN_OUT").lower(), distribution=("uniform" if True else "truncated_normal")
                 ),
             )
-            nodes_vocab = tf.get_variable(
+            nodes_vocab = tf.compat.v1.get_variable(
                 "NODES_VOCAB",
                 shape=(self.nodes_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
-                initializer=tf.contrib.layers.variance_scaling_initializer(
-                    factor=1.0, mode="FAN_OUT", uniform=True
+                initializer=tf.compat.v1.keras.initializers.VarianceScaling(
+                    scale=1.0, mode=("FAN_OUT").lower(), distribution=("uniform" if True else "truncated_normal")
                 ),
             )
             # (batch, max_contexts, decoder_size)
@@ -536,7 +536,7 @@ class Model:
                 path_target_lengths=path_target_lengths,
             )
 
-            batch_size = tf.shape(target_index)[0]
+            batch_size = tf.shape(input=target_index)[0]
             outputs, final_states = self.decode_outputs(
                 target_words_vocab=target_words_vocab,
                 target_input=target_index,
@@ -558,27 +558,27 @@ class Model:
                 maxlen=self.config.MAX_TARGET_PARTS + 1,
                 dtype=tf.float32,
             )
-            loss = tf.reduce_sum(crossent * target_words_nonzero) / tf.to_float(
-                batch_size
+            loss = tf.reduce_sum(input_tensor=crossent * target_words_nonzero) / tf.cast(
+                batch_size, dtype=tf.float32
             )
 
             if self.config.USE_MOMENTUM:
-                learning_rate = tf.train.exponential_decay(
+                learning_rate = tf.compat.v1.train.exponential_decay(
                     0.01,
                     step * self.config.BATCH_SIZE,
                     self.num_training_examples,
                     0.95,
                     staircase=True,
                 )
-                optimizer = tf.train.MomentumOptimizer(
+                optimizer = tf.compat.v1.train.MomentumOptimizer(
                     learning_rate, 0.95, use_nesterov=True
                 )
                 train_op = optimizer.minimize(loss, global_step=step)
             else:
-                params = tf.trainable_variables()
-                gradients = tf.gradients(loss, params)
+                params = tf.compat.v1.trainable_variables()
+                gradients = tf.gradients(ys=loss, xs=params)
                 clipped_gradients, _ = tf.clip_by_global_norm(gradients, clip_norm=5)
-                optimizer = tf.train.AdamOptimizer()
+                optimizer = tf.compat.v1.train.AdamOptimizer()
                 train_op = optimizer.apply_gradients(zip(clipped_gradients, params))
 
             self.saver = tf.compat.v1.train.Saver(max_to_keep=10)
@@ -606,10 +606,10 @@ class Model:
             ]
         )
         contexts_sum = tf.reduce_sum(
-            batched_contexts * tf.expand_dims(valid_mask, -1), axis=1
+            input_tensor=batched_contexts * tf.expand_dims(valid_mask, -1), axis=1
         )  # (batch_size, dim * 2 + rnn_size)
         contexts_average = tf.divide(
-            contexts_sum, tf.to_float(tf.expand_dims(num_contexts_per_example, -1))
+            contexts_sum, tf.cast(tf.expand_dims(num_contexts_per_example, -1), dtype=tf.float32)
         )
         fake_encoder_state = tuple(
             tf.compat.v1.nn.rnn_cell.LSTMStateTuple(contexts_average, contexts_average)
@@ -675,8 +675,8 @@ class Model:
                 decoder_cell, output_keep_prob=self.config.RNN_DROPOUT_KEEP_PROB
             )
             target_words_embedding = tf.nn.embedding_lookup(
-                target_words_vocab,
-                tf.concat([tf.expand_dims(start_fill, -1), target_input], axis=-1),
+                params=target_words_vocab,
+                ids=tf.concat([tf.expand_dims(start_fill, -1), target_input], axis=-1),
             )  # (batch, max_target_parts, dim * 2 + rnn_size)
             helper = tf.contrib.seq2seq.TrainingHelper(
                 inputs=target_words_embedding,
@@ -714,7 +714,7 @@ class Model:
         # path_embed:           (batch, max_contexts, max_path_length+1, dim)
         # path_length:          (batch, max_contexts)
         # valid_contexts_mask:  (batch, max_contexts)
-        max_contexts = tf.shape(path_embed)[1]
+        max_contexts = tf.shape(input=path_embed)[1]
         flat_paths = tf.reshape(
             path_embed,
             shape=[-1, self.config.MAX_PATH_LENGTH, self.config.EMBEDDINGS_SIZE],
@@ -735,7 +735,7 @@ class Model:
                 rnn_cell_bw = tf.compat.v1.nn.rnn_cell.DropoutWrapper(
                     rnn_cell_bw, output_keep_prob=self.config.RNN_DROPOUT_KEEP_PROB
                 )
-            _, (state_fw, state_bw) = tf.nn.bidirectional_dynamic_rnn(
+            _, (state_fw, state_bw) = tf.compat.v1.nn.bidirectional_dynamic_rnn(
                 cell_fw=rnn_cell_fw,
                 cell_bw=rnn_cell_bw,
                 inputs=flat_paths,
@@ -751,7 +751,7 @@ class Model:
                 rnn_cell = tf.compat.v1.nn.rnn_cell.DropoutWrapper(
                     rnn_cell, output_keep_prob=self.config.RNN_DROPOUT_KEEP_PROB
                 )
-            _, state = tf.nn.dynamic_rnn(
+            _, state = tf.compat.v1.nn.dynamic_rnn(
                 cell=rnn_cell,
                 inputs=flat_paths,
                 dtype=tf.float32,
@@ -800,13 +800,13 @@ class Model:
         )  # (batch, max_contexts, max_name_parts, 1)
 
         source_words_sum = tf.reduce_sum(
-            source_word_embed * source_word_mask, axis=2
+            input_tensor=source_word_embed * source_word_mask, axis=2
         )  # (batch, max_contexts, dim)
         path_nodes_aggregation = self.calculate_path_abstraction(
             path_embed, path_lengths, valid_mask, is_evaluating
         )  # (batch, max_contexts, rnn_size)
         target_words_sum = tf.reduce_sum(
-            target_word_embed * target_word_mask, axis=2
+            input_tensor=target_word_embed * target_word_mask, axis=2
         )  # (batch, max_contexts, dim)
 
         context_embed = tf.concat(
@@ -814,10 +814,10 @@ class Model:
         )  # (batch, max_contexts, dim * 2 + rnn_size)
         if not is_evaluating:
             context_embed = tf.nn.dropout(
-                context_embed, self.config.EMBEDDINGS_DROPOUT_KEEP_PROB
+                context_embed, 1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB)
             )
 
-        batched_embed = tf.layers.dense(
+        batched_embed = tf.compat.v1.layers.dense(
             inputs=context_embed,
             units=self.config.DECODER_SIZE,
             activation=tf.nn.tanh,
@@ -837,20 +837,20 @@ class Model:
         path_lengths = input_tensors[reader.PATH_LENGTHS_KEY]
         path_target_lengths = input_tensors[reader.PATH_TARGET_LENGTHS_KEY]
 
-        with tf.variable_scope("model", reuse=self.get_should_reuse_variables()):
-            subtoken_vocab = tf.get_variable(
+        with tf.compat.v1.variable_scope("model", reuse=self.get_should_reuse_variables()):
+            subtoken_vocab = tf.compat.v1.get_variable(
                 "SUBTOKENS_VOCAB",
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
                 trainable=False,
             )
-            target_words_vocab = tf.get_variable(
+            target_words_vocab = tf.compat.v1.get_variable(
                 "TARGET_WORDS_VOCAB",
                 shape=(self.target_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
                 trainable=False,
             )
-            nodes_vocab = tf.get_variable(
+            nodes_vocab = tf.compat.v1.get_variable(
                 "NODES_VOCAB",
                 shape=(self.nodes_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
@@ -873,7 +873,7 @@ class Model:
             outputs, final_states = self.decode_outputs(
                 target_words_vocab=target_words_vocab,
                 target_input=target_index,
-                batch_size=tf.shape(target_index)[0],
+                batch_size=tf.shape(input=target_index)[0],
                 batched_contexts=batched_contexts,
                 valid_mask=valid_mask,
                 is_evaluating=True,

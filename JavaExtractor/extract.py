@@ -21,6 +21,13 @@ TMP_DIR = ""
 def ParallelExtractDir(args, dir):
     ExtractFeaturesForDir(args, dir, "")
 
+def ExtractFeaturesForFile(args, file):
+    command = ['java', '-Xmx100g', '-XX:MaxNewSize=60g', '-cp', args.jar, 'JavaExtractor.App',
+               '--max_path_length', str(args.max_path_length), '--max_path_width', str(args.max_path_width),
+               '--file', file]
+    sleeper = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = sleeper.communicate()
+    print(stdout)
 
 def ExtractFeaturesForDir(args, dir, prefix):
     command = ['java', '-Xmx100g', '-XX:MaxNewSize=60g', '-cp', args.jar, 'JavaExtractor.App',
@@ -85,9 +92,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.file is not None:
-        command = 'java -cp ' + args.jar + ' JavaExtractor.App --max_path_length ' + \
-                  str(args.max_path_length) + ' --max_path_width ' + str(args.max_path_width) + ' --file ' + args.file
-        os.system(command)
+        ExtractFeaturesForFile(args, args.file)
     elif args.dir is not None:
         subdirs = get_immediate_subdirectories(args.dir)
         if len(subdirs) == 0:
