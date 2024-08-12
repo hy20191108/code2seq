@@ -104,7 +104,10 @@ class Model:
         print(
             "Number of trainable params:",
             np.sum(
-                [np.prod(v.get_shape().as_list()) for v in tf.compat.v1.trainable_variables()]
+                [
+                    np.prod(v.get_shape().as_list())
+                    for v in tf.compat.v1.trainable_variables()
+                ]
             ),
         )
         self.initialize_session_variables(self.sess)
@@ -504,7 +507,9 @@ class Model:
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
                 initializer=tf.compat.v1.keras.initializers.VarianceScaling(
-                    scale=1.0, mode=("FAN_OUT").lower(), distribution=("uniform" if True else "truncated_normal")
+                    scale=1.0,
+                    mode=("FAN_OUT").lower(),
+                    distribution=("uniform" if True else "truncated_normal"),
                 ),
             )
             target_words_vocab = tf.compat.v1.get_variable(
@@ -512,7 +517,9 @@ class Model:
                 shape=(self.target_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
                 initializer=tf.compat.v1.keras.initializers.VarianceScaling(
-                    scale=1.0, mode=("FAN_OUT").lower(), distribution=("uniform" if True else "truncated_normal")
+                    scale=1.0,
+                    mode=("FAN_OUT").lower(),
+                    distribution=("uniform" if True else "truncated_normal"),
                 ),
             )
             nodes_vocab = tf.compat.v1.get_variable(
@@ -520,7 +527,9 @@ class Model:
                 shape=(self.nodes_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
                 initializer=tf.compat.v1.keras.initializers.VarianceScaling(
-                    scale=1.0, mode=("FAN_OUT").lower(), distribution=("uniform" if True else "truncated_normal")
+                    scale=1.0,
+                    mode=("FAN_OUT").lower(),
+                    distribution=("uniform" if True else "truncated_normal"),
                 ),
             )
             # (batch, max_contexts, decoder_size)
@@ -558,9 +567,9 @@ class Model:
                 maxlen=self.config.MAX_TARGET_PARTS + 1,
                 dtype=tf.float32,
             )
-            loss = tf.reduce_sum(input_tensor=crossent * target_words_nonzero) / tf.cast(
-                batch_size, dtype=tf.float32
-            )
+            loss = tf.reduce_sum(
+                input_tensor=crossent * target_words_nonzero
+            ) / tf.cast(batch_size, dtype=tf.float32)
 
             if self.config.USE_MOMENTUM:
                 learning_rate = tf.compat.v1.train.exponential_decay(
@@ -609,7 +618,8 @@ class Model:
             input_tensor=batched_contexts * tf.expand_dims(valid_mask, -1), axis=1
         )  # (batch_size, dim * 2 + rnn_size)
         contexts_average = tf.divide(
-            contexts_sum, tf.cast(tf.expand_dims(num_contexts_per_example, -1), dtype=tf.float32)
+            contexts_sum,
+            tf.cast(tf.expand_dims(num_contexts_per_example, -1), dtype=tf.float32),
         )
         fake_encoder_state = tuple(
             tf.compat.v1.nn.rnn_cell.LSTMStateTuple(contexts_average, contexts_average)
@@ -837,7 +847,9 @@ class Model:
         path_lengths = input_tensors[reader.PATH_LENGTHS_KEY]
         path_target_lengths = input_tensors[reader.PATH_TARGET_LENGTHS_KEY]
 
-        with tf.compat.v1.variable_scope("model", reuse=self.get_should_reuse_variables()):
+        with tf.compat.v1.variable_scope(
+            "model", reuse=self.get_should_reuse_variables()
+        ):
             subtoken_vocab = tf.compat.v1.get_variable(
                 "SUBTOKENS_VOCAB",
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),

@@ -47,7 +47,7 @@ class Config:
         self.SHUFFLE_BUFFER_SIZE = 0
         self.CSV_BUFFER_SIZE = None
         self.TRAIN_PATH = args.data_path
-        self.TEST_PATH = args.test_path if args.test_path is not None else ''
+        self.TEST_PATH = args.test_path if args.test_path is not None else ""
         self.DATA_NUM_CONTEXTS = 0
         self.MAX_CONTEXTS = 0
         self.SUBTOKENS_VOCAB_MAX_SIZE = 0
