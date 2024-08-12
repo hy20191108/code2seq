@@ -36,6 +36,7 @@ dependencies = [
     "wrapt==1.16.0",
     "zipp==3.15.0",
     "requests>=2.31.0",
+    "ruff>=0.5.7",
 ]
 readme = "README.md"
 requires-python = "== 3.7.9"
@@ -53,3 +54,12 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/code2seq"]
+
+[tool.mypy]
+strict = true
+
+[tool.ruff.lint]
+extend-select = [
+    "I",  # isort
+    "UP", # pyupgrade
+]

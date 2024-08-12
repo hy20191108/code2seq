@@ -79,6 +79,8 @@ requests==2.31.0
     # via code2seq
 rouge==1.0.1
     # via code2seq
+ruff==0.5.7
+    # via code2seq
 setuptools==68.0.0
     # via code2seq
     # via tensorboard
