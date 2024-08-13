@@ -824,7 +824,7 @@ class Model:
         )  # (batch, max_contexts, dim * 2 + rnn_size)
         if not is_evaluating:
             context_embed = tf.nn.dropout(
-                context_embed, 1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB)
+                context_embed, 1 - (1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB))
             )
 
         batched_embed = tf.compat.v1.layers.dense(
