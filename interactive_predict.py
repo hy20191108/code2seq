@@ -70,7 +70,7 @@ class InteractivePredictor:
                         )
                         for attention_obj in single_timestep_prediction.attention_paths:
                             vector = attention_obj["vector"]
-                            vector_hash = hashlib.md5(vector.tobytes()).hexdigest()
+                            vector_hash = hashlib.md5(vector.tobytes()).hexdigest()[:5]
                             print(
                                 "score:{:f}\tvecHash:{}\tcontext: {},{},{}".format(
                                     attention_obj["score"],
