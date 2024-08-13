@@ -2,6 +2,7 @@ import os
 import pickle
 import shutil
 import time
+from typing import Dict, List, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -206,7 +207,7 @@ class Model:
                 is_evaluating=True,
             )
             reader_output = self.eval_queue.get_output()
-            self.eval_predicted_indices_op, self.eval_topk_values, _, _ = (
+            self.eval_predicted_indices_op, self.eval_topk_values, _, _, _ = (
                 self.build_test_graph(reader_output)
             )
             self.eval_true_target_strings_op = reader_output[reader.TARGET_STRING_KEY]
@@ -533,7 +534,7 @@ class Model:
                 ),
             )
             # (batch, max_contexts, decoder_size)
-            batched_contexts = self.compute_contexts(
+            batched_contexts, path_nodes_aggregation = self.compute_contexts(
                 subtoken_vocab=subtoken_vocab,
                 nodes_vocab=nodes_vocab,
                 source_input=path_source_indices,
@@ -835,7 +836,7 @@ class Model:
             use_bias=False,
         )
 
-        return batched_embed
+        return batched_embed, path_nodes_aggregation
 
     def build_test_graph(self, input_tensors):
         target_index = input_tensors[reader.TARGET_INDEX_KEY]
@@ -869,7 +870,7 @@ class Model:
                 trainable=False,
             )
 
-            batched_contexts = self.compute_contexts(
+            batched_contexts, path_nodes_aggregation = self.compute_contexts(
                 subtoken_vocab=subtoken_vocab,
                 nodes_vocab=nodes_vocab,
                 source_input=path_source_indices,
@@ -900,7 +901,13 @@ class Model:
             topk_values = tf.constant(1, shape=(1, 1), dtype=tf.float32)
             attention_weights = tf.squeeze(final_states.alignment_history.stack(), 1)
 
-        return predicted_indices, topk_values, target_index, attention_weights
+        return (
+            predicted_indices,
+            topk_values,
+            target_index,
+            attention_weights,
+            path_nodes_aggregation,
+        )
 
     def predict(self, predict_data_lines):
         if self.predict_queue is None:
@@ -923,6 +930,7 @@ class Model:
                 self.predict_top_scores_op,
                 _,
                 self.attention_weights_op,
+                self.path_nodes_aggregation_op,
             ) = self.build_test_graph(reader_output)
             self.predict_source_string = reader_output[reader.PATH_SOURCE_STRINGS_KEY]
             self.predict_path_string = reader_output[reader.PATH_STRINGS_KEY]
@@ -942,6 +950,7 @@ class Model:
                 top_scores,
                 true_target_strings,
                 attention_weights,
+                path_nodes_aggregation,
                 path_source_string,
                 path_strings,
                 path_target_string,
@@ -951,6 +960,7 @@ class Model:
                     self.predict_top_scores_op,
                     self.predict_target_strings_op,
                     self.attention_weights_op,
+                    self.path_nodes_aggregation_op,
                     self.predict_source_string,
                     self.predict_path_string,
                     self.predict_path_target_string,
@@ -958,10 +968,13 @@ class Model:
                 feed_dict={self.predict_placeholder: line},
             )
 
+            attention_weights: np.ndarray
+
             top_scores = np.squeeze(top_scores, axis=0)
-            path_source_string = path_source_string.reshape(-1)
-            path_strings = path_strings.reshape(-1)
-            path_target_string = path_target_string.reshape(-1)
+            path_nodes_aggregation = np.squeeze(path_nodes_aggregation, axis=0)
+            path_source_string: np.ndarray = path_source_string.reshape(-1)
+            path_strings: np.ndarray = path_strings.reshape(-1)
+            path_target_string: np.ndarray = path_target_string.reshape(-1)
             predicted_indices = np.squeeze(predicted_indices, axis=0)
             true_target_strings = Common.binary_to_string(true_target_strings[0])
 
@@ -989,14 +1002,20 @@ class Model:
                 )
 
             results.append(
-                (true_target_strings, predicted_strings, top_scores, attention_per_path)
+                (
+                    true_target_strings,
+                    predicted_strings,
+                    top_scores,
+                    attention_per_path,
+                    path_nodes_aggregation,
+                )
             )
         return results
 
     @staticmethod
     def get_attention_per_path(
         source_strings, path_strings, target_strings, attention_weights
-    ):
+    ) -> List[Dict[Tuple[str, str, str], np.float]]:
         # attention_weights:  (time, contexts)
         results = []
         for time_step in attention_weights:
