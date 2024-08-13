@@ -1,1 +1,2 @@
-/target/
+/target/*
+!/target/JavaExtractor-0.0.*-SNAPSHOT.jar
