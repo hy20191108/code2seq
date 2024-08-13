@@ -4,7 +4,7 @@
   <groupId>JavaExtractor</groupId>
   <artifactId>JavaExtractor</artifactId>
   <name>JPredict</name>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2-SNAPSHOT</version>
   <url>http://maven.apache.org</url>
   <build>
     <plugins>

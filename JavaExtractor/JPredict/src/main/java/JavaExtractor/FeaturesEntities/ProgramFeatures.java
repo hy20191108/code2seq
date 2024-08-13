@@ -4,10 +4,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
+import com.github.javaparser.ast.Node;
+
 public class ProgramFeatures {
     String name;
 
-    transient ArrayList<ProgramRelation> features = new ArrayList<>();
+    ArrayList<ProgramRelation> features = new ArrayList<>();
     String textContent;
 
     String filePath;
@@ -29,10 +31,10 @@ public class ProgramFeatures {
         return stringBuilder.toString();
     }
 
-    public void addFeature(Property source, String path, Property target) {
-        ProgramRelation newRelation = new ProgramRelation(source, target, path);
-        features.add(newRelation);
-    }
+    public void addFeature(Property source, Node sourceNode, String path, Property target, Node targetNode) {
+		ProgramRelation newRelation = new ProgramRelation(source, sourceNode, target, targetNode, path);
+		features.add(newRelation);
+	}
 
     public boolean isEmpty() {
         return features.isEmpty();

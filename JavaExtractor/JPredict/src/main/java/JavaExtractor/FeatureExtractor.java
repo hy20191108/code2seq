@@ -103,9 +103,12 @@ class FeatureExtractor {
 
                 String path = generatePath(functionLeaves.get(i), functionLeaves.get(j), separator);
                 if (path != Common.EmptyString) {
-                    Property source = functionLeaves.get(i).getUserData(Common.PropertyKey);
-                    Property target = functionLeaves.get(j).getUserData(Common.PropertyKey);
-                    programFeatures.addFeature(source, path, target);
+                	Node sourceNode = functionLeaves.get(i);
+					Node targetNode = functionLeaves.get(j);
+
+					Property source = sourceNode.getUserData(Common.PropertyKey);
+					Property target = targetNode.getUserData(Common.PropertyKey);
+					programFeatures.addFeature(source, sourceNode, path, target, targetNode);
                 }
             }
         }
