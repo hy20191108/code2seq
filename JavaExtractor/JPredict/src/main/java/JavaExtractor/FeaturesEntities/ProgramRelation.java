@@ -4,32 +4,31 @@ import com.github.javaparser.Position;
 import com.github.javaparser.ast.Node;
 
 public class ProgramRelation {
-	transient Property sourceProp;
-	transient Property targetProp;
-	private String source;
-	private String target;
+	private String name1;
+	private String name2;
+	private String shortPath;
 	private String path;
-	private Position sourceBegin;
-	private Position sourceEnd;
-	private Position targetBegin;
-	private Position targetEnd;
+	private Position name1Begin;
+	private Position name1End;
+	private Position name2Begin;
+	private Position name2End;
 
 	public ProgramRelation(Property sourceProp, Node sourceNode, Property targetProp, Node targetNode, String path) {
-		this.sourceProp = sourceProp;
-		this.targetProp = targetProp;
-		
-		this.source = sourceProp.getName();
-		this.target = targetProp.getName();
+		// Text
+		this.name1 = sourceProp.getName();
+		this.name2 = targetProp.getName();
+		this.shortPath = path;
 		this.path = path;
-		
-		this.sourceBegin = sourceNode.getBegin();
-		this.sourceEnd = sourceNode.getEnd();
-		this.targetBegin = targetNode.getBegin();
-		this.targetEnd = targetNode.getEnd();
-		
+
+		// Token Position
+		this.name1Begin = sourceNode.getBegin();
+		this.name1End = sourceNode.getEnd();
+		this.name2Begin = targetNode.getBegin();
+		this.name2End = targetNode.getEnd();
+
 	}
 
 	public String toString() {
-		return String.format("%s,%s,%s", sourceProp.getName(), path, targetProp.getName());
+		return String.format("%s,%s,%s", name1, shortPath, name2);
 	}
 }

@@ -7,16 +7,16 @@ import java.util.stream.Collectors;
 import com.github.javaparser.ast.Node;
 
 public class ProgramFeatures {
-    String name;
+    String target;
 
-    ArrayList<ProgramRelation> features = new ArrayList<>();
+    ArrayList<ProgramRelation> paths = new ArrayList<>();
     String textContent;
 
     String filePath;
 
     public ProgramFeatures(String name, Path filePath, String textContent) {
 
-        this.name = name;
+        this.target = name;
         this.filePath = filePath.toAbsolutePath().toString();
         this.textContent = textContent;
     }
@@ -25,18 +25,18 @@ public class ProgramFeatures {
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(name).append(" ");
-        stringBuilder.append(features.stream().map(ProgramRelation::toString).collect(Collectors.joining(" ")));
+        stringBuilder.append(target).append(" ");
+        stringBuilder.append(paths.stream().map(ProgramRelation::toString).collect(Collectors.joining(" ")));
 
         return stringBuilder.toString();
     }
 
     public void addFeature(Property source, Node sourceNode, String path, Property target, Node targetNode) {
 		ProgramRelation newRelation = new ProgramRelation(source, sourceNode, target, targetNode, path);
-		features.add(newRelation);
+		paths.add(newRelation);
 	}
 
     public boolean isEmpty() {
-        return features.isEmpty();
+        return paths.isEmpty();
     }
 }
