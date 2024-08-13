@@ -1,6 +1,43 @@
 import re
 import subprocess
 import sys
+from typing import Dict, List
+
+
+class PredictionResults:
+    def __init__(self, original_name):
+        self.original_name = original_name
+        self.predictions: List[SingleTimeStepPrediction] = list()
+
+    def append_prediction(self, name, current_timestep_paths):
+        self.predictions.append(SingleTimeStepPrediction(name, current_timestep_paths))
+
+
+class SingleTimeStepPrediction:
+    def __init__(self, prediction, attention_paths):
+        self.prediction = prediction
+        if attention_paths is not None:
+            paths_with_scores = []
+            for attention_score, pc_info in attention_paths:
+                path_context_dict = {
+                    "score": attention_score,
+                    "path": pc_info.longPath,
+                    "token1": pc_info.token1,
+                    "token2": pc_info.token2,
+                }
+                paths_with_scores.append(path_context_dict)
+            self.attention_paths = paths_with_scores
+
+
+class PathContextInformation:
+    def __init__(self, context):
+        self.token1 = context["name1"]
+        self.longPath = context["path"]
+        self.shortPath = context["shortPath"]
+        self.token2 = context["name2"]
+
+    def __str__(self):
+        return "%s,%s,%s" % (self.token1, self.shortPath, self.token2)
 
 
 class Common:
@@ -53,7 +90,7 @@ class Common:
         return word_to_index, index_to_word, current_index
 
     @staticmethod
-    def binary_to_string(binary_string):
+    def binary_to_string(binary_string: bytes):
         return binary_string.decode("utf-8")
 
     @staticmethod
@@ -82,13 +119,17 @@ class Common:
         return list(set(sequence))
 
     @staticmethod
-    def parse_results(result, pc_info_dict, topk=5):
+    def parse_results(result, pc_info_dict, topk=5) -> Dict[int, PredictionResults]:
         prediction_results = {}
         results_counter = 0
         for single_method in result:
-            original_name, top_suggestions, top_scores, attention_per_context = list(
-                single_method
-            )
+            (
+                original_name,
+                top_suggestions,
+                top_scores,
+                attention_per_context,
+                path_nodes_aggregation,
+            ) = list(single_method)
             current_method_prediction_results = PredictionResults(original_name)
             if attention_per_context is not None:
                 word_attention_pairs = [
@@ -135,39 +176,3 @@ class Common:
                 stdout=sys.stdout,
                 stderr=sys.stderr,
             )
-
-
-class PredictionResults:
-    def __init__(self, original_name):
-        self.original_name = original_name
-        self.predictions = list()
-
-    def append_prediction(self, name, current_timestep_paths):
-        self.predictions.append(SingleTimeStepPrediction(name, current_timestep_paths))
-
-
-class SingleTimeStepPrediction:
-    def __init__(self, prediction, attention_paths):
-        self.prediction = prediction
-        if attention_paths is not None:
-            paths_with_scores = []
-            for attention_score, pc_info in attention_paths:
-                path_context_dict = {
-                    "score": attention_score,
-                    "path": pc_info.longPath,
-                    "token1": pc_info.token1,
-                    "token2": pc_info.token2,
-                }
-                paths_with_scores.append(path_context_dict)
-            self.attention_paths = paths_with_scores
-
-
-class PathContextInformation:
-    def __init__(self, context):
-        self.token1 = context["name1"]
-        self.longPath = context["path"]
-        self.shortPath = context["shortPath"]
-        self.token2 = context["name2"]
-
-    def __str__(self):
-        return "%s,%s,%s" % (self.token1, self.shortPath, self.token2)
