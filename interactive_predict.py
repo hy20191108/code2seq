@@ -1,8 +1,10 @@
+import hashlib
+
 from common import Common
 from extractor import Extractor
 from model import Model
 
-SHOW_TOP_CONTEXTS = 10
+SHOW_TOP_CONTEXTS = 200
 MAX_PATH_LENGTH = 8
 MAX_PATH_WIDTH = 2
 EXTRACTION_API = (
@@ -67,9 +69,12 @@ class InteractivePredictor:
                             % (timestep, single_timestep_prediction.prediction)
                         )
                         for attention_obj in single_timestep_prediction.attention_paths:
+                            vector = attention_obj["vector"]
+                            vector_hash = hashlib.md5(vector.tobytes()).hexdigest()
                             print(
-                                "{:f}\tcontext: {},{},{}".format(
+                                "score:{:f}\tvecHash:{}\tcontext: {},{},{}".format(
                                     attention_obj["score"],
+                                    vector_hash,
                                     attention_obj["token1"],
                                     attention_obj["path"],
                                     attention_obj["token2"],

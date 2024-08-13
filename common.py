@@ -1,7 +1,33 @@
 import re
 import subprocess
 import sys
-from typing import Dict, List
+from typing import Dict, List, Tuple
+
+import numpy as np
+
+
+class ContextInfo:
+    def __init__(
+        self,
+        token1: str,
+        path: str,
+        token2: str,
+        attention_score: np.float,
+        vector: np.ndarray,
+    ) -> None:
+        self._token1 = token1
+        self._astpath = path
+        self._token2 = token2
+        self._attention_score = attention_score
+        self._vector = vector
+
+    @property
+    def attention_score(self) -> np.float:
+        return self._attention_score
+
+    @property
+    def vector(self) -> np.ndarray:
+        return self._vector
 
 
 class PredictionResults:
@@ -18,9 +44,10 @@ class SingleTimeStepPrediction:
         self.prediction = prediction
         if attention_paths is not None:
             paths_with_scores = []
-            for attention_score, pc_info in attention_paths:
+            for attention_score, vector, pc_info in attention_paths:
                 path_context_dict = {
                     "score": attention_score,
+                    "vector": vector,
                     "path": pc_info.longPath,
                     "token1": pc_info.token1,
                     "token2": pc_info.token2,
@@ -122,32 +149,43 @@ class Common:
     def parse_results(result, pc_info_dict, topk=5) -> Dict[int, PredictionResults]:
         prediction_results = {}
         results_counter = 0
+
+        # method
         for single_method in result:
             (
                 original_name,
                 top_suggestions,
                 top_scores,
                 attention_per_context,
-                path_nodes_aggregation,
             ) = list(single_method)
             current_method_prediction_results = PredictionResults(original_name)
+
+            attention_per_context: List[Dict[Tuple[str, str, str], ContextInfo]]
             if attention_per_context is not None:
                 word_attention_pairs = [
                     (word, attention)
                     for word, attention in zip(top_suggestions, attention_per_context)
                     if Common.legal_method_names_checker(word)
                 ]
+
+                # word
                 for predicted_word, attention_timestep in word_attention_pairs:
                     current_timestep_paths = []
-                    for context, attention in [
-                        (key, attention_timestep[key])
-                        for key in sorted(
-                            attention_timestep, key=attention_timestep.get, reverse=True
-                        )
-                    ][:topk]:
+                    tmp = []
+                    for key, value in attention_timestep.items():
+                        tmp.append((key, value))
+                    tmp = sorted(tmp, key=lambda x: x[1].attention_score, reverse=True)
+
+                    for context, path_context_info in tmp[:topk]:
                         if context in pc_info_dict:
                             pc_info = pc_info_dict[context]
-                            current_timestep_paths.append((attention.item(), pc_info))
+                            current_timestep_paths.append(
+                                (
+                                    path_context_info.attention_score.item(),
+                                    path_context_info.vector,
+                                    pc_info,
+                                )
+                            )
 
                     current_method_prediction_results.append_prediction(
                         predicted_word, current_timestep_paths

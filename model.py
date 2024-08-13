@@ -9,7 +9,7 @@ import tensorflow as tf
 from rouge import FilesRouge
 
 import reader
-from common import Common
+from common import Common, ContextInfo
 
 
 class Model:
@@ -992,6 +992,8 @@ class Model:
                     self.index_to_target[idx] for idx in predicted_indices
                 ]  # (batch, target_length)
 
+            vector_list = [vector for vector in path_nodes_aggregation]
+
             attention_per_path = None
             if self.config.BEAM_WIDTH == 0:
                 attention_per_path = self.get_attention_per_path(
@@ -999,6 +1001,7 @@ class Model:
                     path_strings,
                     path_target_string,
                     attention_weights,
+                    vector_list,
                 )
 
             results.append(
@@ -1007,28 +1010,39 @@ class Model:
                     predicted_strings,
                     top_scores,
                     attention_per_path,
-                    path_nodes_aggregation,
                 )
             )
         return results
 
     @staticmethod
     def get_attention_per_path(
-        source_strings, path_strings, target_strings, attention_weights
-    ) -> List[Dict[Tuple[str, str, str], np.float]]:
+        source_strings, path_strings, target_strings, attention_weights, vectors
+    ) -> List[Dict[Tuple[str, str, str], ContextInfo]]:
+        assert (
+            len(source_strings)
+            == len(path_strings)
+            == len(target_strings)
+            == len(vectors)
+        )
         # attention_weights:  (time, contexts)
         results = []
         for time_step in attention_weights:
             attention_per_context = {}
-            for source, path, target, weight in zip(
-                source_strings, path_strings, target_strings, time_step
+            for source, path, target, weight, vector in zip(
+                source_strings, path_strings, target_strings, time_step, vectors
             ):
                 string_triplet = (
                     Common.binary_to_string(source),
                     Common.binary_to_string(path),
                     Common.binary_to_string(target),
                 )
-                attention_per_context[string_triplet] = weight
+                attention_per_context[string_triplet] = ContextInfo(
+                    Common.binary_to_string(source),
+                    Common.binary_to_string(path),
+                    Common.binary_to_string(target),
+                    weight,
+                    vector,
+                )
             results.append(attention_per_context)
         return results
 

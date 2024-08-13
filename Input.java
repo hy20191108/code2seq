@@ -1,3 +1,3 @@
-public String getName() {
-		return name;
-	}
+public static void d() {
+    System.out.println("Hello, World!");
+}
