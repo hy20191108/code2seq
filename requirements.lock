@@ -10,11 +10,9 @@
 
 -e file:.
 absl-py==2.1.0
-    # via code2seq
     # via tensorboard
     # via tensorflow
 astor==0.8.1
-    # via code2seq
     # via tensorflow
 certifi==2024.7.4
     # via requests
@@ -23,17 +21,13 @@ charset-normalizer==3.3.2
 colorama==0.4.6
     # via tqdm
 gast==0.2.2
-    # via code2seq
     # via tensorflow
 google-pasta==0.2.0
-    # via code2seq
     # via tensorflow
 grpcio==1.62.2
-    # via code2seq
     # via tensorboard
     # via tensorflow
 h5py==2.10.0
-    # via code2seq
     # via keras-applications
     # via tensorflow
 idna==3.7
@@ -50,7 +44,6 @@ keras-preprocessing==1.1.2
     # via code2seq
     # via tensorflow
 markdown==3.4.4
-    # via code2seq
     # via tensorboard
 markupsafe==2.1.5
     # via code2seq
@@ -68,7 +61,6 @@ numpy==1.18.5
 opt-einsum==3.3.0
     # via tensorflow
 packaging==24.0
-    # via code2seq
     # via tensorflow-addons
 protobuf==3.20.0
     # via code2seq
@@ -81,7 +73,6 @@ rouge==1.0.1
 ruff==0.5.7
     # via code2seq
 setuptools==68.0.0
-    # via code2seq
     # via tensorboard
 six==1.16.0
     # via google-pasta
@@ -101,28 +92,22 @@ tensorflow-estimator==1.15.1
     # via code2seq
     # via tensorflow
 termcolor==2.3.0
-    # via code2seq
     # via tensorflow
 tqdm==4.66.4
     # via code2seq
 typeguard==4.1.2
-    # via code2seq
     # via tensorflow-addons
 typing-extensions==4.7.1
-    # via code2seq
     # via importlib-metadata
     # via typeguard
 urllib3==2.0.7
     # via requests
 werkzeug==2.2.3
-    # via code2seq
     # via tensorboard
 wheel==0.42.0
     # via tensorboard
     # via tensorflow
 wrapt==1.16.0
-    # via code2seq
     # via tensorflow
 zipp==3.15.0
-    # via code2seq
     # via importlib-metadata
