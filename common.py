@@ -62,6 +62,23 @@ class PathContextInformation:
         self.longPath = context["path"]
         self.shortPath = context["shortPath"]
         self.token2 = context["name2"]
+        self.token1_begin = context["name1Begin"]
+        self.token1_end = context["name1End"]
+        self.token2_begin = context["name2Begin"]
+        self.token2_end = context["name2End"]
+
+    @property
+    def lineColumns(self):
+        return (
+            self.token1_begin["line"],
+            self.token1_begin["column"],
+            self.token1_end["line"],
+            self.token1_end["column"],
+            self.token2_begin["line"],
+            self.token2_begin["column"],
+            self.token2_end["line"],
+            self.token2_end["column"],
+        )
 
     def __str__(self):
         return "%s,%s,%s" % (self.token1, self.shortPath, self.token2)
@@ -146,9 +163,10 @@ class Common:
         return list(set(sequence))
 
     @staticmethod
-    def parse_results(result, pc_info_dict, topk=5) -> Dict[int, PredictionResults]:
+    def parse_results(result, pc_info_dict) -> Dict[int, PredictionResults]:
         prediction_results = {}
         results_counter = 0
+        attention_per_context: List[Dict[Tuple[str, str, str], ContextInfo]]
 
         # method
         for single_method in result:
@@ -160,7 +178,6 @@ class Common:
             ) = list(single_method)
             current_method_prediction_results = PredictionResults(original_name)
 
-            attention_per_context: List[Dict[Tuple[str, str, str], ContextInfo]]
             if attention_per_context is not None:
                 word_attention_pairs = [
                     (word, attention)
@@ -171,12 +188,8 @@ class Common:
                 # word
                 for predicted_word, attention_timestep in word_attention_pairs:
                     current_timestep_paths = []
-                    tmp = []
-                    for key, value in attention_timestep.items():
-                        tmp.append((key, value))
-                    tmp = sorted(tmp, key=lambda x: x[1].attention_score, reverse=True)
 
-                    for context, path_context_info in tmp[:topk]:
+                    for context, path_context_info in attention_timestep.items():
                         if context in pc_info_dict:
                             pc_info = pc_info_dict[context]
                             current_timestep_paths.append(

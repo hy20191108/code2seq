@@ -53,16 +53,14 @@ class InteractivePredictor:
                 return
             user_input = " ".join(self.read_file(input_filename))
             try:
-                predict_lines, pc_info_dict = self.path_extractor.extract_paths(
-                    user_input
+                predict_lines, pc_info_dict, pc_info_list = (
+                    self.path_extractor.extract_paths(user_input)
                 )
             except ValueError:
                 continue
             model_results = self.model.predict(predict_lines)
 
-            prediction_results = Common.parse_results(
-                model_results, pc_info_dict, topk=SHOW_TOP_CONTEXTS
-            )
+            prediction_results = Common.parse_results(model_results, pc_info_dict)
             for index, method_prediction in prediction_results.items():
                 print("Original name:\t" + method_prediction.original_name)
                 if self.config.BEAM_WIDTH == 0:
@@ -98,44 +96,52 @@ class InteractivePredictor:
     def get(self, code_path):
         code_string = " ".join(self.read_file(code_path))
         try:
-            predict_lines, pc_info_dict = self.path_extractor.extract_paths(code_string)
+            predict_lines, pc_info_dict, pc_info_list = (
+                self.path_extractor.extract_paths(code_string)
+            )
         except ValueError:
             raise ValueError("Error in extracting paths")
 
         model_results = self.model.predict(predict_lines)
 
-        prediction_results = Common.parse_results(
-            model_results, pc_info_dict, topk=SHOW_TOP_CONTEXTS
-        )
-        for index, method_prediction in prediction_results.items():
-            print("Original name:\t" + method_prediction.original_name)
+        result_list = []
+
+        prediction_results = Common.parse_results(model_results, pc_info_dict)
+        for _, method_prediction in prediction_results.items():
+            one_method_astpaths = []
+
             if self.config.BEAM_WIDTH == 0:
-                one_method_astpaths = []
-                print(
-                    "Predicted:\t%s"
-                    % [step.prediction for step in method_prediction.predictions]
+                single_timestep_prediction = method_prediction.predictions[0]
+
+                assert len(single_timestep_prediction.attention_paths) == len(
+                    pc_info_list
                 )
-                for timestep, single_timestep_prediction in enumerate(
-                    method_prediction.predictions
+
+                for attention_obj, pc_info in zip(
+                    single_timestep_prediction.attention_paths, pc_info_list
                 ):
-                    print("Attention:")
-                    print(
-                        "TIMESTEP: %d\t: %s"
-                        % (timestep, single_timestep_prediction.prediction)
+                    one_method_astpaths.append(
+                        {
+                            "source": attention_obj["token1"],
+                            "path": attention_obj["path"],
+                            "target": attention_obj["token2"],
+                            "lineColumns": pc_info.lineColumns,
+                            "attention": attention_obj["score"],
+                            "vector": attention_obj["vector"],
+                        }
                     )
-                    for attention_obj in single_timestep_prediction.attention_paths:
-                        vector = attention_obj["vector"]
-                        vector_hash = hashlib.md5(vector.tobytes()).hexdigest()[:5]
-                        print(
-                            "score:{:f}\tvecHash:{}\tcontext: {},{},{}".format(
-                                attention_obj["score"],
-                                vector_hash,
-                                attention_obj["token1"],
-                                attention_obj["path"],
-                                attention_obj["token2"],
-                            )
-                        )
+
+                result_list.append(
+                    (
+                        method_prediction.original_name,
+                        -1,  # use -1 insted of raw_prediction.code_vector,
+                        one_method_astpaths,
+                    )
+                )
             else:
                 print("Predicted:")
                 for predicted_seq in method_prediction.predictions:
                     print(f"\t{predicted_seq.prediction}")
+                raise ValueError("Error in extracting paths")
+
+        return result_list

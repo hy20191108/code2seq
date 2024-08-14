@@ -7,7 +7,6 @@
 #   all-features: false
 #   with-sources: false
 #   generate-hashes: false
-#   universal: false
 
 -e file:.
 absl-py==2.1.0
@@ -21,6 +20,8 @@ certifi==2024.7.4
     # via requests
 charset-normalizer==3.3.2
     # via requests
+colorama==0.4.6
+    # via tqdm
 gast==0.2.2
     # via code2seq
     # via tensorflow

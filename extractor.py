@@ -1,6 +1,7 @@
 import argparse
 import json
 import tempfile
+from typing import Dict, List, Tuple
 
 import requests
 
@@ -51,7 +52,8 @@ class Extractor:
 
         response_array = self.emulated_post_request(self.jar_path, code_string)
 
-        pc_info_dict = {}
+        pc_info_dict: Dict[Tuple[str, str, str], PathContextInformation] = {}
+        pc_info_list: List[PathContextInformation] = []
         result = []
         for single_method in response_array:
             method_name = single_method["target"]
@@ -63,8 +65,9 @@ class Extractor:
                 pc_info_dict[(pc_info.token1, pc_info.shortPath, pc_info.token2)] = (
                     pc_info
                 )
+                pc_info_list.append(pc_info)
             space_padding = " " * (self.config.DATA_NUM_CONTEXTS - len(contexts))
             result_line = " ".join(current_result_line_parts) + space_padding
             result.append(result_line)
 
-        return result, pc_info_dict
+        return result, pc_info_dict, pc_info_list

@@ -30,14 +30,14 @@ def ExtractFeaturesForFile(args, file):
     command = [
         "java",
         "-cp",
-        args.jar,
+        str(args.jar),
         "JavaExtractor.App",
         "--max_path_length",
         str(args.max_path_length),
         "--max_path_width",
         str(args.max_path_width),
         "--file",
-        file,
+        str(file),
         "--json_output",
     ]
 
