@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import itertools
+import json
 import multiprocessing
 import os
 import shutil
@@ -11,8 +12,11 @@ from threading import Timer
 
 
 def get_immediate_subdirectories(a_dir):
-    return [(os.path.join(a_dir, name)) for name in os.listdir(a_dir)
-            if os.path.isdir(os.path.join(a_dir, name))]
+    return [
+        (os.path.join(a_dir, name))
+        for name in os.listdir(a_dir)
+        if os.path.isdir(os.path.join(a_dir, name))
+    ]
 
 
 TMP_DIR = ""
@@ -21,25 +25,56 @@ TMP_DIR = ""
 def ParallelExtractDir(args, dir):
     ExtractFeaturesForDir(args, dir, "")
 
+
 def ExtractFeaturesForFile(args, file):
-    command = ['java', '-Xmx100g', '-XX:MaxNewSize=60g', '-cp', args.jar, 'JavaExtractor.App',
-               '--max_path_length', str(args.max_path_length), '--max_path_width', str(args.max_path_width),
-               '--file', file]
-    sleeper = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = sleeper.communicate()
-    print(stdout)
+    command = [
+        "java",
+        "-cp",
+        args.jar,
+        "JavaExtractor.App",
+        "--max_path_length",
+        str(args.max_path_length),
+        "--max_path_width",
+        str(args.max_path_width),
+        "--file",
+        file,
+        "--json_output",
+    ]
+
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = process.communicate()
+    output = out.decode()
+
+    if err != b"":
+        raise ValueError(err.decode())
+
+    return [json.loads(line) for line in output.splitlines()]
+
 
 def ExtractFeaturesForDir(args, dir, prefix):
-    command = ['java', '-Xmx100g', '-XX:MaxNewSize=60g', '-cp', args.jar, 'JavaExtractor.App',
-               '--max_path_length', str(args.max_path_length), '--max_path_width', str(args.max_path_width),
-               '--dir', dir, '--num_threads', str(args.num_threads)]
+    command = [
+        "java",
+        "-Xmx100g",
+        "-XX:MaxNewSize=60g",
+        "-cp",
+        args.jar,
+        "JavaExtractor.App",
+        "--max_path_length",
+        str(args.max_path_length),
+        "--max_path_width",
+        str(args.max_path_width),
+        "--dir",
+        dir,
+        "--num_threads",
+        str(args.num_threads),
+    ]
 
     # print command
     # os.system(command)
     kill = lambda process: process.kill()
-    outputFileName = TMP_DIR + prefix + dir.split('/')[-1]
+    outputFileName = TMP_DIR + prefix + dir.split("/")[-1]
     failed = False
-    with open(outputFileName, 'a') as outputFile:
+    with open(outputFileName, "a") as outputFile:
         sleeper = subprocess.Popen(command, stdout=outputFile, stderr=subprocess.PIPE)
         timer = Timer(60 * 60, kill, [sleeper])
 
@@ -53,11 +88,11 @@ def ExtractFeaturesForDir(args, dir, prefix):
             if len(stderr) > 0:
                 print(stderr, file=sys.stderr)
         else:
-            print('dir: ' + str(dir) + ' was not completed in time', file=sys.stderr)
+            print("dir: " + str(dir) + " was not completed in time", file=sys.stderr)
             failed = True
             subdirs = get_immediate_subdirectories(dir)
             for subdir in subdirs:
-                ExtractFeaturesForDir(args, subdir, prefix + dir.split('/')[-1] + '_')
+                ExtractFeaturesForDir(args, subdir, prefix + dir.split("/")[-1] + "_")
     if failed:
         if os.path.exists(outputFileName):
             os.remove(outputFileName)
@@ -81,11 +116,25 @@ def ExtractFeaturesForDirsList(args, dirs):
         shutil.rmtree(TMP_DIR, ignore_errors=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-maxlen", "--max_path_length", dest="max_path_length", required=False, default=8)
-    parser.add_argument("-maxwidth", "--max_path_width", dest="max_path_width", required=False, default=2)
-    parser.add_argument("-threads", "--num_threads", dest="num_threads", required=False, default=64)
+    parser.add_argument(
+        "-maxlen",
+        "--max_path_length",
+        dest="max_path_length",
+        required=False,
+        default=8,
+    )
+    parser.add_argument(
+        "-maxwidth",
+        "--max_path_width",
+        dest="max_path_width",
+        required=False,
+        default=2,
+    )
+    parser.add_argument(
+        "-threads", "--num_threads", dest="num_threads", required=False, default=64
+    )
     parser.add_argument("-j", "--jar", dest="jar", required=True)
     parser.add_argument("-dir", "--dir", dest="dir", required=False)
     parser.add_argument("-file", "--file", dest="file", required=False)
@@ -93,6 +142,7 @@ if __name__ == '__main__':
 
     if args.file is not None:
         ExtractFeaturesForFile(args, args.file)
+
     elif args.dir is not None:
         subdirs = get_immediate_subdirectories(args.dir)
         if len(subdirs) == 0:
