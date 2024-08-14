@@ -312,13 +312,12 @@ class Reader:
             dataset = dataset.shuffle(
                 self.config.SHUFFLE_BUFFER_SIZE, reshuffle_each_iteration=True
             )
-        dataset = dataset.apply(
-            tf.data.experimental.map_and_batch(
-                map_func=self.process_dataset,
-                batch_size=self.batch_size,
-                num_parallel_batches=self.config.READER_NUM_PARALLEL_BATCHES,
-            )
+        dataset = dataset.map(
+            map_func=self.process_dataset,
+            num_parallel_calls=self.config.READER_NUM_PARALLEL_BATCHES,
         )
+
+        dataset = dataset.batch(batch_size=self.batch_size, drop_remainder=True)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
         self.iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
         self.reset_op = self.iterator.initializer

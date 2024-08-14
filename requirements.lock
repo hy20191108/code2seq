@@ -39,7 +39,6 @@ h5py==2.10.0
 idna==3.7
     # via requests
 importlib-metadata==6.7.0
-    # via code2seq
     # via markdown
     # via typeguard
 keras==2.11.0
@@ -67,7 +66,6 @@ numpy==1.18.5
     # via tensorboard
     # via tensorflow
 opt-einsum==3.3.0
-    # via code2seq
     # via tensorflow
 packaging==24.0
     # via code2seq
@@ -86,7 +84,6 @@ setuptools==68.0.0
     # via code2seq
     # via tensorboard
 six==1.16.0
-    # via code2seq
     # via google-pasta
     # via h5py
     # via keras-preprocessing
@@ -121,7 +118,6 @@ werkzeug==2.2.3
     # via code2seq
     # via tensorboard
 wheel==0.42.0
-    # via code2seq
     # via tensorboard
     # via tensorflow
 wrapt==1.16.0
