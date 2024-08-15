@@ -8,16 +8,16 @@ import numpy as np
 import tensorflow as tf
 from rouge import FilesRouge
 
-from code2seq import reader
-from code2seq.common import Common, ContextInfo
-from code2seq.config import Config
+import reader
+from common import Common, ContextInfo
+from config import Config
 
 
 class Model:
     topk = 10
     num_batches_to_log = 100
 
-    def __init__(self, config:Config):
+    def __init__(self, config: Config):
         self.config = config
         self.sess = tf.compat.v1.Session()
 
@@ -106,7 +106,10 @@ class Model:
         print(
             "Number of trainable params:",
             np.sum(
-                [np.prod(v.get_shape().as_list()) for v in tf.compat.v1.trainable_variables()]
+                [
+                    np.prod(v.get_shape().as_list())
+                    for v in tf.compat.v1.trainable_variables()
+                ]
             ),
         )
         self.initialize_session_variables(self.sess)
@@ -624,7 +627,9 @@ class Model:
             tf.compat.v1.nn.rnn_cell.LSTMStateTuple(contexts_average, contexts_average)
             for _ in range(self.config.NUM_DECODER_LAYERS)
         )
-        projection_layer = tf.compat.v1.layers.Dense(self.target_vocab_size, use_bias=False)
+        projection_layer = tf.compat.v1.layers.Dense(
+            self.target_vocab_size, use_bias=False
+        )
         if is_evaluating and self.config.BEAM_WIDTH > 0:
             batched_contexts = tf.contrib.seq2seq.tile_batch(
                 batched_contexts, multiplier=self.config.BEAM_WIDTH
@@ -821,7 +826,8 @@ class Model:
         )  # (batch, max_contexts, dim * 2 + rnn_size)
         if not is_evaluating:
             context_embed = tf.nn.dropout(
-                context_embed, rate=1 - (1 - (1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB)))
+                context_embed,
+                rate=1 - (1 - (1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB))),
             )
 
         batched_embed = tf.compat.v1.layers.dense(
@@ -844,7 +850,9 @@ class Model:
         path_lengths = input_tensors[reader.PATH_LENGTHS_KEY]
         path_target_lengths = input_tensors[reader.PATH_TARGET_LENGTHS_KEY]
 
-        with tf.compat.v1.variable_scope("model", reuse=self.get_should_reuse_variables()):
+        with tf.compat.v1.variable_scope(
+            "model", reuse=self.get_should_reuse_variables()
+        ):
             subtoken_vocab = tf.compat.v1.get_variable(
                 "SUBTOKENS_VOCAB",
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),

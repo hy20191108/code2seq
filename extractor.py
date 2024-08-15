@@ -5,8 +5,8 @@ from typing import Dict, List, Tuple
 
 import requests
 
-from code2seq.common import PathContextInformation
-from code2seq.JavaExtractor.extract import ExtractFeaturesForFile
+from common import PathContextInformation
+from JavaExtractor.extract import ExtractFeaturesForFile
 
 
 class Extractor:

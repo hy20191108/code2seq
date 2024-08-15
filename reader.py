@@ -2,7 +2,7 @@ import os
 
 import tensorflow as tf
 
-from code2seq.common import Common
+from common import Common
 
 TARGET_INDEX_KEY = "TARGET_INDEX_KEY"
 TARGET_STRING_KEY = "TARGET_STRING_KEY"
@@ -88,7 +88,7 @@ class Reader:
                 keys=tf.constant(list(word_to_index.keys()), dtype=tf.string),
                 values=tf.constant(list(word_to_index.values()), dtype=tf.int32),
             ),
-            default_value=default_value
+            default_value=default_value,
         )
 
     def process_from_placeholder(self, row):
@@ -139,7 +139,9 @@ class Reader:
             shape=[self.config.MAX_CONTEXTS, 3],
         )  # (batch, max_contexts, 3)
 
-        split_target_labels = tf.compat.v1.string_split(tf.expand_dims(word, -1), sep="|")
+        split_target_labels = tf.compat.v1.string_split(
+            tf.expand_dims(word, -1), sep="|"
+        )
         target_dense_shape = [
             1,
             tf.maximum(
@@ -205,7 +207,9 @@ class Reader:
             dense_split_contexts, [0, 1], [self.config.MAX_CONTEXTS, 1]
         )
         flat_path_strings = tf.reshape(path_strings, [-1])
-        split_path = tf.compat.v1.string_split(flat_path_strings, sep="|", skip_empty=False)
+        split_path = tf.compat.v1.string_split(
+            flat_path_strings, sep="|", skip_empty=False
+        )
         sparse_split_path = tf.sparse.SparseTensor(
             indices=split_path.indices,
             values=split_path.values,

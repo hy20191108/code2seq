@@ -7,7 +7,7 @@ class Wrapper:
     def __init__(self) -> None:
         pass
 
-    def get(source_code):
+    def get(self, source_code):
         url = "http://127.0.0.1:5000/api/data"
         data = {"source_code": source_code}
         response = requests.post(url, json=data)
