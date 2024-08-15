@@ -12,7 +12,7 @@ class ContextInfo:
         token1: str,
         path: str,
         token2: str,
-        attention_score: np.float,
+        attention_score: float,
         vector: np.ndarray,
     ) -> None:
         self._token1 = token1
@@ -22,7 +22,7 @@ class ContextInfo:
         self._vector = vector
 
     @property
-    def attention_score(self) -> np.float:
+    def attention_score(self) -> float:
         return self._attention_score
 
     @property
@@ -81,7 +81,7 @@ class PathContextInformation:
         )
 
     def __str__(self):
-        return "%s,%s,%s" % (self.token1, self.shortPath, self.token2)
+        return f"{self.token1},{self.shortPath},{self.token2}"
 
 
 class Common:
