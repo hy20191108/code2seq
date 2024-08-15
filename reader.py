@@ -109,7 +109,7 @@ class Reader:
         if not self.is_evaluating and self.config.RANDOM_CONTEXTS:
             all_contexts = tf.stack(row_parts[1:])
             all_contexts_padded = tf.concat([all_contexts, [self.context_pad]], axis=-1)
-            index_of_blank_context = tf.compat.v1.where(
+            index_of_blank_context = tf.where(
                 tf.equal(all_contexts_padded, self.context_pad)
             )
             num_contexts_per_example = tf.reduce_min(
@@ -128,9 +128,7 @@ class Reader:
             contexts = row_parts[1 : (self.config.MAX_CONTEXTS + 1)]  # (max_contexts,)
 
         # contexts: (max_contexts, )
-        split_contexts = tf.compat.v1.string_split(
-            contexts, sep=",", skip_empty=False
-        )
+        split_contexts = tf.string_split(contexts, sep=",", skip_empty=False)
         sparse_split_contexts = tf.sparse.SparseTensor(
             indices=split_contexts.indices,
             values=split_contexts.values,
@@ -143,9 +141,7 @@ class Reader:
             shape=[self.config.MAX_CONTEXTS, 3],
         )  # (batch, max_contexts, 3)
 
-        split_target_labels = tf.compat.v1.string_split(
-            tf.expand_dims(word, -1), sep="|"
-        )
+        split_target_labels = tf.string_split(tf.expand_dims(word, -1), sep="|")
         target_dense_shape = [
             1,
             tf.maximum(
@@ -176,7 +172,7 @@ class Reader:
             dense_split_contexts, [0, 0], [self.config.MAX_CONTEXTS, 1]
         )  # (max_contexts, 1)
         flat_source_strings = tf.reshape(path_source_strings, [-1])  # (max_contexts)
-        split_source = tf.compat.v1.string_split(
+        split_source = tf.string_split(
             flat_source_strings, sep="|", skip_empty=False
         )  # (max_contexts, max_name_parts)
 
@@ -211,9 +207,7 @@ class Reader:
             dense_split_contexts, [0, 1], [self.config.MAX_CONTEXTS, 1]
         )
         flat_path_strings = tf.reshape(path_strings, [-1])
-        split_path = tf.compat.v1.string_split(
-            flat_path_strings, sep="|", skip_empty=False
-        )
+        split_path = tf.string_split(flat_path_strings, sep="|", skip_empty=False)
         sparse_split_path = tf.sparse.SparseTensor(
             indices=split_path.indices,
             values=split_path.values,
@@ -235,7 +229,7 @@ class Reader:
             dense_split_contexts, [0, 2], [self.config.MAX_CONTEXTS, 1]
         )  # (max_contexts, 1)
         flat_target_strings = tf.reshape(path_target_strings, [-1])  # (max_contexts)
-        split_target = tf.compat.v1.string_split(
+        split_target = tf.string_split(
             flat_target_strings, sep="|", skip_empty=False
         )  # (max_contexts, max_name_parts)
         sparse_split_target = tf.sparse.SparseTensor(
@@ -319,7 +313,7 @@ class Reader:
 
         dataset = dataset.batch(batch_size=self.batch_size, drop_remainder=True)
         dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-        self.iterator = tf.compat.v1.data.make_initializable_iterator(dataset)
+        self.iterator = tf.data.make_initializable_iterator(dataset)
         self.reset_op = self.iterator.initializer
         return self.iterator.get_next()
 
@@ -376,11 +370,11 @@ if __name__ == "__main__":
     path_strings_op = output[PATH_STRINGS_KEY]
     path_target_strings_op = output[PATH_TARGET_STRINGS_KEY]
 
-    sess = tf.compat.v1.InteractiveSession()
+    sess = tf.InteractiveSession()
     tf.group(
-        tf.compat.v1.global_variables_initializer(),
-        tf.compat.v1.local_variables_initializer(),
-        tf.compat.v1.tables_initializer(),
+        tf.global_variables_initializer(),
+        tf.local_variables_initializer(),
+        tf.tables_initializer(),
     ).run()
     reader.reset(sess)
 

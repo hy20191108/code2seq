@@ -18,7 +18,7 @@ class Model:
 
     def __init__(self, config):
         self.config = config
-        self.sess = tf.compat.v1.Session()
+        self.sess = tf.Session()
 
         self.eval_queue = None
         self.predict_queue = None
@@ -105,10 +105,7 @@ class Model:
         print(
             "Number of trainable params:",
             np.sum(
-                [
-                    np.prod(v.get_shape().as_list())
-                    for v in tf.compat.v1.trainable_variables()
-                ]
+                [np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]
             ),
         )
         self.initialize_session_variables(self.sess)
@@ -211,7 +208,7 @@ class Model:
                 self.build_test_graph(reader_output)
             )
             self.eval_true_target_strings_op = reader_output[reader.TARGET_STRING_KEY]
-            self.saver = tf.compat.v1.train.Saver(max_to_keep=10)
+            self.saver = tf.train.Saver(max_to_keep=10)
 
         if self.config.LOAD_PATH and not self.config.TRAIN_PATH:
             self.initialize_session_variables(self.sess)
@@ -502,32 +499,32 @@ class Model:
         path_lengths = input_tensors[reader.PATH_LENGTHS_KEY]
         path_target_lengths = input_tensors[reader.PATH_TARGET_LENGTHS_KEY]
 
-        with tf.compat.v1.variable_scope("model"):
-            subtoken_vocab = tf.compat.v1.get_variable(
+        with tf.variable_scope("model"):
+            subtoken_vocab = tf.get_variable(
                 "SUBTOKENS_VOCAB",
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
-                initializer=tf.compat.v1.keras.initializers.VarianceScaling(
+                initializer=tf.keras.initializers.VarianceScaling(
                     scale=1.0,
                     mode=("FAN_OUT").lower(),
                     distribution=("uniform" if True else "truncated_normal"),
                 ),
             )
-            target_words_vocab = tf.compat.v1.get_variable(
+            target_words_vocab = tf.get_variable(
                 "TARGET_WORDS_VOCAB",
                 shape=(self.target_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
-                initializer=tf.compat.v1.keras.initializers.VarianceScaling(
+                initializer=tf.keras.initializers.VarianceScaling(
                     scale=1.0,
                     mode=("FAN_OUT").lower(),
                     distribution=("uniform" if True else "truncated_normal"),
                 ),
             )
-            nodes_vocab = tf.compat.v1.get_variable(
+            nodes_vocab = tf.get_variable(
                 "NODES_VOCAB",
                 shape=(self.nodes_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
-                initializer=tf.compat.v1.keras.initializers.VarianceScaling(
+                initializer=tf.keras.initializers.VarianceScaling(
                     scale=1.0,
                     mode=("FAN_OUT").lower(),
                     distribution=("uniform" if True else "truncated_normal"),
@@ -573,25 +570,25 @@ class Model:
             ) / tf.cast(batch_size, dtype=tf.float32)
 
             if self.config.USE_MOMENTUM:
-                learning_rate = tf.compat.v1.train.exponential_decay(
+                learning_rate = tf.train.exponential_decay(
                     0.01,
                     step * self.config.BATCH_SIZE,
                     self.num_training_examples,
                     0.95,
                     staircase=True,
                 )
-                optimizer = tf.compat.v1.train.MomentumOptimizer(
+                optimizer = tf.train.MomentumOptimizer(
                     learning_rate, 0.95, use_nesterov=True
                 )
                 train_op = optimizer.minimize(loss, global_step=step)
             else:
-                params = tf.compat.v1.trainable_variables()
+                params = tf.trainable_variables()
                 gradients = tf.gradients(ys=loss, xs=params)
                 clipped_gradients, _ = tf.clip_by_global_norm(gradients, clip_norm=5)
-                optimizer = tf.compat.v1.train.AdamOptimizer()
+                optimizer = tf.train.AdamOptimizer()
                 train_op = optimizer.apply_gradients(zip(clipped_gradients, params))
 
-            self.saver = tf.compat.v1.train.Saver(max_to_keep=10)
+            self.saver = tf.train.Saver(max_to_keep=10)
 
         return train_op, loss
 
@@ -604,14 +601,14 @@ class Model:
         valid_mask,
         is_evaluating=False,
     ):
-        num_contexts_per_example = tf.compat.v1.count_nonzero(valid_mask, axis=-1)
+        num_contexts_per_example = tf.count_nonzero(valid_mask, axis=-1)
 
         start_fill = tf.fill(
             [batch_size], self.target_to_index[Common.SOS]
         )  # (batch, )
-        decoder_cell = tf.compat.v1.nn.rnn_cell.MultiRNNCell(
+        decoder_cell = tf.nn.rnn_cell.MultiRNNCell(
             [
-                tf.compat.v1.nn.rnn_cell.LSTMCell(self.config.DECODER_SIZE)
+                tf.nn.rnn_cell.LSTMCell(self.config.DECODER_SIZE)
                 for _ in range(self.config.NUM_DECODER_LAYERS)
             ]
         )
@@ -623,12 +620,10 @@ class Model:
             tf.cast(tf.expand_dims(num_contexts_per_example, -1), dtype=tf.float32),
         )
         fake_encoder_state = tuple(
-            tf.compat.v1.nn.rnn_cell.LSTMStateTuple(contexts_average, contexts_average)
+            tf.nn.rnn_cell.LSTMStateTuple(contexts_average, contexts_average)
             for _ in range(self.config.NUM_DECODER_LAYERS)
         )
-        projection_layer = tf.compat.v1.layers.Dense(
-            self.target_vocab_size, use_bias=False
-        )
+        projection_layer = tf.layers.Dense(self.target_vocab_size, use_bias=False)
         if is_evaluating and self.config.BEAM_WIDTH > 0:
             batched_contexts = tf.contrib.seq2seq.tile_batch(
                 batched_contexts, multiplier=self.config.BEAM_WIDTH
@@ -682,7 +677,7 @@ class Model:
                 )
 
         else:
-            decoder_cell = tf.compat.v1.nn.rnn_cell.DropoutWrapper(
+            decoder_cell = tf.nn.rnn_cell.DropoutWrapper(
                 decoder_cell, output_keep_prob=self.config.RNN_DROPOUT_KEEP_PROB
             )
             target_words_embedding = tf.nn.embedding_lookup(
@@ -737,16 +732,16 @@ class Model:
             tf.reshape(path_lengths, [-1]), tf.cast(flat_valid_contexts_mask, tf.int32)
         )  # (batch * max_contexts)
         if self.config.BIRNN:
-            rnn_cell_fw = tf.compat.v1.nn.rnn_cell.LSTMCell(self.config.RNN_SIZE / 2)
-            rnn_cell_bw = tf.compat.v1.nn.rnn_cell.LSTMCell(self.config.RNN_SIZE / 2)
+            rnn_cell_fw = tf.nn.rnn_cell.LSTMCell(self.config.RNN_SIZE / 2)
+            rnn_cell_bw = tf.nn.rnn_cell.LSTMCell(self.config.RNN_SIZE / 2)
             if not is_evaluating:
-                rnn_cell_fw = tf.compat.v1.nn.rnn_cell.DropoutWrapper(
+                rnn_cell_fw = tf.nn.rnn_cell.DropoutWrapper(
                     rnn_cell_fw, output_keep_prob=self.config.RNN_DROPOUT_KEEP_PROB
                 )
-                rnn_cell_bw = tf.compat.v1.nn.rnn_cell.DropoutWrapper(
+                rnn_cell_bw = tf.nn.rnn_cell.DropoutWrapper(
                     rnn_cell_bw, output_keep_prob=self.config.RNN_DROPOUT_KEEP_PROB
                 )
-            _, (state_fw, state_bw) = tf.compat.v1.nn.bidirectional_dynamic_rnn(
+            _, (state_fw, state_bw) = tf.nn.bidirectional_dynamic_rnn(
                 cell_fw=rnn_cell_fw,
                 cell_bw=rnn_cell_bw,
                 inputs=flat_paths,
@@ -757,12 +752,12 @@ class Model:
                 [state_fw.h, state_bw.h], axis=-1
             )  # (batch * max_contexts, rnn_size)
         else:
-            rnn_cell = tf.compat.v1.nn.rnn_cell.LSTMCell(self.config.RNN_SIZE)
+            rnn_cell = tf.nn.rnn_cell.LSTMCell(self.config.RNN_SIZE)
             if not is_evaluating:
-                rnn_cell = tf.compat.v1.nn.rnn_cell.DropoutWrapper(
+                rnn_cell = tf.nn.rnn_cell.DropoutWrapper(
                     rnn_cell, output_keep_prob=self.config.RNN_DROPOUT_KEEP_PROB
                 )
-            _, state = tf.compat.v1.nn.dynamic_rnn(
+            _, state = tf.nn.dynamic_rnn(
                 cell=rnn_cell,
                 inputs=flat_paths,
                 dtype=tf.float32,
@@ -828,7 +823,7 @@ class Model:
                 context_embed, 1 - (1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB))
             )
 
-        batched_embed = tf.compat.v1.layers.dense(
+        batched_embed = tf.layers.dense(
             inputs=context_embed,
             units=self.config.DECODER_SIZE,
             activation=tf.nn.tanh,
@@ -848,22 +843,20 @@ class Model:
         path_lengths = input_tensors[reader.PATH_LENGTHS_KEY]
         path_target_lengths = input_tensors[reader.PATH_TARGET_LENGTHS_KEY]
 
-        with tf.compat.v1.variable_scope(
-            "model", reuse=self.get_should_reuse_variables()
-        ):
-            subtoken_vocab = tf.compat.v1.get_variable(
+        with tf.variable_scope("model", reuse=self.get_should_reuse_variables()):
+            subtoken_vocab = tf.get_variable(
                 "SUBTOKENS_VOCAB",
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
                 trainable=False,
             )
-            target_words_vocab = tf.compat.v1.get_variable(
+            target_words_vocab = tf.get_variable(
                 "TARGET_WORDS_VOCAB",
                 shape=(self.target_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
                 trainable=False,
             )
-            nodes_vocab = tf.compat.v1.get_variable(
+            nodes_vocab = tf.get_variable(
                 "NODES_VOCAB",
                 shape=(self.nodes_vocab_size, self.config.EMBEDDINGS_SIZE),
                 dtype=tf.float32,
@@ -918,7 +911,7 @@ class Model:
                 config=self.config,
                 is_evaluating=True,
             )
-            self.predict_placeholder = tf.compat.v1.placeholder(tf.string)
+            self.predict_placeholder = tf.placeholder(tf.string)
             reader_output = self.predict_queue.process_from_placeholder(
                 self.predict_placeholder
             )
@@ -940,7 +933,7 @@ class Model:
             self.predict_target_strings_op = reader_output[reader.TARGET_STRING_KEY]
 
             self.initialize_session_variables(self.sess)
-            self.saver = tf.compat.v1.train.Saver()
+            self.saver = tf.train.Saver()
             self.load_model(self.sess)
 
         results = []
@@ -1102,9 +1095,9 @@ class Model:
     def initialize_session_variables(sess):
         sess.run(
             tf.group(
-                tf.compat.v1.global_variables_initializer(),
-                tf.compat.v1.local_variables_initializer(),
-                tf.compat.v1.tables_initializer(),
+                tf.global_variables_initializer(),
+                tf.local_variables_initializer(),
+                tf.tables_initializer(),
             )
         )
 

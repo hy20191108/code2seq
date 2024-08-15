@@ -53,7 +53,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     np.random.seed(args.seed)
-    tf.compat.v1.set_random_seed(args.seed)
+    tf.set_random_seed(args.seed)
 
     if args.debug:
         config = Config.get_debug_config(args)
