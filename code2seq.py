@@ -7,7 +7,8 @@ from config import Config
 from interactive_predict import InteractivePredictor
 from model import Model
 
-if __name__ == "__main__":
+
+def get_args():
     parser = ArgumentParser()
     parser.add_argument(
         "-d",
@@ -50,8 +51,12 @@ if __name__ == "__main__":
     parser.add_argument("--predict", action="store_true")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--seed", type=int, default=239)
-    args = parser.parse_args()
 
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = get_args()
     np.random.seed(args.seed)
     tf.compat.v1.set_random_seed(args.seed)
 

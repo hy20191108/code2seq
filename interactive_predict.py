@@ -93,8 +93,8 @@ class InteractivePredictor:
                     for predicted_seq in method_prediction.predictions:
                         print(f"\t{predicted_seq.prediction}")
 
-    def get(self, code_path):
-        code_string = " ".join(self.read_file(code_path))
+    def get(self, code_string):
+        # code_string = " ".join(self.read_file(code_path))
         try:
             predict_lines, pc_info_dict, pc_info_list = (
                 self.path_extractor.extract_paths(code_string)
