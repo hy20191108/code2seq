@@ -83,14 +83,12 @@ class Reader:
 
     @classmethod
     def initialize_hash_map(cls, word_to_index, default_value):
-        return tf.contrib.lookup.HashTable(
-            tf.contrib.lookup.KeyValueTensorInitializer(
-                list(word_to_index.keys()),
-                list(word_to_index.values()),
-                key_dtype=tf.string,
-                value_dtype=tf.int32,
+        return tf.lookup.StaticHashTable(
+            initializer=tf.lookup.KeyValueTensorInitializer(
+                keys=tf.constant(list(word_to_index.keys()), dtype=tf.string),
+                values=tf.constant(list(word_to_index.values()), dtype=tf.int32),
             ),
-            default_value,
+            default_value=default_value
         )
 
     def process_from_placeholder(self, row):
