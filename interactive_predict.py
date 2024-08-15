@@ -15,7 +15,7 @@ EXTRACTION_API = (
 JAR_PATH = (
     Path(__file__).parent
     / "JavaExtractor/JPredict/target/JavaExtractor-0.0.2-SNAPSHOT.jar"
-)
+).resolve()
 
 
 class InteractivePredictor:

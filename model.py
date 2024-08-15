@@ -106,10 +106,7 @@ class Model:
         print(
             "Number of trainable params:",
             np.sum(
-                [
-                    np.prod(v.get_shape().as_list())
-                    for v in tf.compat.v1.trainable_variables()
-                ]
+                [np.prod(v.get_shape().as_list()) for v in tf.compat.v1.trainable_variables()]
             ),
         )
         self.initialize_session_variables(self.sess)
@@ -605,7 +602,7 @@ class Model:
         valid_mask,
         is_evaluating=False,
     ):
-        num_contexts_per_example = tf.compat.v1.count_nonzero(valid_mask, axis=-1)
+        num_contexts_per_example = tf.math.count_nonzero(valid_mask, axis=-1)
 
         start_fill = tf.fill(
             [batch_size], self.target_to_index[Common.SOS]
@@ -627,9 +624,7 @@ class Model:
             tf.compat.v1.nn.rnn_cell.LSTMStateTuple(contexts_average, contexts_average)
             for _ in range(self.config.NUM_DECODER_LAYERS)
         )
-        projection_layer = tf.compat.v1.layers.Dense(
-            self.target_vocab_size, use_bias=False
-        )
+        projection_layer = tf.compat.v1.layers.Dense(self.target_vocab_size, use_bias=False)
         if is_evaluating and self.config.BEAM_WIDTH > 0:
             batched_contexts = tf.contrib.seq2seq.tile_batch(
                 batched_contexts, multiplier=self.config.BEAM_WIDTH
@@ -826,7 +821,7 @@ class Model:
         )  # (batch, max_contexts, dim * 2 + rnn_size)
         if not is_evaluating:
             context_embed = tf.nn.dropout(
-                context_embed, 1 - (1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB))
+                context_embed, rate=1 - (1 - (1 - (self.config.EMBEDDINGS_DROPOUT_KEEP_PROB)))
             )
 
         batched_embed = tf.compat.v1.layers.dense(
@@ -849,9 +844,7 @@ class Model:
         path_lengths = input_tensors[reader.PATH_LENGTHS_KEY]
         path_target_lengths = input_tensors[reader.PATH_TARGET_LENGTHS_KEY]
 
-        with tf.compat.v1.variable_scope(
-            "model", reuse=self.get_should_reuse_variables()
-        ):
+        with tf.compat.v1.variable_scope("model", reuse=self.get_should_reuse_variables()):
             subtoken_vocab = tf.compat.v1.get_variable(
                 "SUBTOKENS_VOCAB",
                 shape=(self.subtoken_vocab_size, self.config.EMBEDDINGS_SIZE),

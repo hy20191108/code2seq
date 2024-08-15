@@ -18,3 +18,4 @@ models
 *.xml
 *.pyc
 *.tar.gz
+*.lock
