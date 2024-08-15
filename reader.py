@@ -2,7 +2,7 @@ import os
 
 import tensorflow as tf
 
-from common import Common
+from code2seq.common import Common
 
 TARGET_INDEX_KEY = "TARGET_INDEX_KEY"
 TARGET_STRING_KEY = "TARGET_STRING_KEY"
