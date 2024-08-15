@@ -8,15 +8,16 @@ import numpy as np
 import tensorflow as tf
 from rouge import FilesRouge
 
-import reader
-from common import Common, ContextInfo
+from code2seq import reader
+from code2seq.common import Common, ContextInfo
+from code2seq.config import Config
 
 
 class Model:
     topk = 10
     num_batches_to_log = 100
 
-    def __init__(self, config):
+    def __init__(self, config:Config):
         self.config = config
         self.sess = tf.compat.v1.Session()
 
