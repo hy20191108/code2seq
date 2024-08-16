@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 from flask import Flask, request
 
-import code2seq
+import _code2seq
 from config import Config
 from interactive_predict import InteractivePredictor
 from model import Model
@@ -12,7 +12,7 @@ from model import Model
 app = Flask(__name__)
 
 # generate predictor
-args = code2seq.get_args()
+args = _code2seq.get_args()
 np.random.seed(args.seed)
 tf.compat.v1.set_random_seed(args.seed)
 config = Config.get_default_config(args)

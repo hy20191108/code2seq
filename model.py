@@ -9,6 +9,10 @@ import tensorflow as tf
 from rouge import FilesRouge
 
 import reader
+from code2seq.data.code import Code
+from code2seq.data.method import Method
+from code2seq.data.path_context import PathContext
+from code2seq.data.predict_name import PredictName
 from common import Common, ContextInfo
 from config import Config
 
@@ -945,7 +949,7 @@ class Model:
             self.saver = tf.compat.v1.train.Saver()
             self.load_model(self.sess)
 
-        results = []
+        code = Code()
         for line in predict_data_lines:
             (
                 predicted_indices,
@@ -996,28 +1000,33 @@ class Model:
 
             vector_list = [vector for vector in path_nodes_aggregation]
 
-            attention_per_path = None
             if self.config.BEAM_WIDTH == 0:
-                attention_per_path = self.get_attention_per_path(
+                method = self.get_method(
                     path_source_string,
                     path_strings,
                     path_target_string,
                     attention_weights,
                     vector_list,
                 )
+            else:
+                method = Method()
 
-            results.append(
-                (
-                    true_target_strings,
-                    predicted_strings,
-                    top_scores,
-                    attention_per_path,
-                )
-            )
-        return results
+            method.set_name(true_target_strings)
+            method.set_top_scores(top_scores)
+
+            assert len(method.predict_name_list) == len(predicted_strings)
+
+            for predict_name, predicted_str in zip(
+                method.predict_name_list, predicted_strings
+            ):
+                predict_name.set_predicted_name(predicted_str)
+
+            code.append(method)
+
+        return code
 
     @staticmethod
-    def get_attention_per_path(
+    def get_method(
         source_strings, path_strings, target_strings, attention_weights, vectors
     ) -> List[Dict[Tuple[str, str, str], ContextInfo]]:
         assert (
@@ -1027,26 +1036,24 @@ class Model:
             == len(vectors)
         )
         # attention_weights:  (time, contexts)
-        results = []
+        method = Method()
         for time_step in attention_weights:
-            attention_per_context = {}
+            predict_name = PredictName()
+
             for source, path, target, weight, vector in zip(
                 source_strings, path_strings, target_strings, time_step, vectors
             ):
-                string_triplet = (
-                    Common.binary_to_string(source),
-                    Common.binary_to_string(path),
-                    Common.binary_to_string(target),
-                )
-                attention_per_context[string_triplet] = ContextInfo(
+                pc = PathContext(
                     Common.binary_to_string(source),
                     Common.binary_to_string(path),
                     Common.binary_to_string(target),
                     weight,
                     vector,
                 )
-            results.append(attention_per_context)
-        return results
+                predict_name.append(pc)
+
+            method.append(predict_name)
+        return method
 
     def save_model(self, sess, path):
         save_target = path + "_iter%d" % self.epochs_trained

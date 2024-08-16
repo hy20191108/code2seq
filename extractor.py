@@ -53,9 +53,12 @@ class Extractor:
         response_array = self.emulated_post_request(self.jar_path, code_string)
 
         pc_info_dict: Dict[Tuple[str, str, str], PathContextInformation] = {}
-        pc_info_list: List[PathContextInformation] = []
+        code_info_list: List[List[PathContextInformation]] = []
+
         result = []
         for single_method in response_array:
+            method_info_list: List[PathContextInformation] = []
+
             method_name = single_method["target"]
             current_result_line_parts = [method_name]
             contexts = single_method["paths"]
@@ -65,9 +68,11 @@ class Extractor:
                 pc_info_dict[(pc_info.token1, pc_info.shortPath, pc_info.token2)] = (
                     pc_info
                 )
-                pc_info_list.append(pc_info)
+                method_info_list.append(pc_info)
             space_padding = " " * (self.config.DATA_NUM_CONTEXTS - len(contexts))
+            print('len of current_result_line_parts', len(current_result_line_parts))
             result_line = " ".join(current_result_line_parts) + space_padding
             result.append(result_line)
+            code_info_list.append(method_info_list)
 
-        return result, pc_info_dict, pc_info_list
+        return result, pc_info_dict, code_info_list

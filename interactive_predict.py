@@ -60,8 +60,8 @@ class InteractivePredictor:
                 continue
             model_results = self.model.predict(predict_lines)
 
-            prediction_results = Common.parse_results(model_results, pc_info_dict)
-            for index, method_prediction in prediction_results.items():
+            code_prediction = Common.parse_results(model_results, pc_info_dict)
+            for method_prediction in code_prediction:
                 print("Original name:\t" + method_prediction.original_name)
                 if self.config.BEAM_WIDTH == 0:
                     print(
@@ -96,7 +96,7 @@ class InteractivePredictor:
     def get(self, code_string):
         # code_string = " ".join(self.read_file(code_path))
         try:
-            predict_lines, pc_info_dict, pc_info_list = (
+            predict_lines, pc_info_dict, code_info_list = (
                 self.path_extractor.extract_paths(code_string)
             )
         except ValueError:
@@ -106,20 +106,20 @@ class InteractivePredictor:
 
         result_list = []
 
-        prediction_results = Common.parse_results(model_results, pc_info_dict)
-        for _, method_prediction in prediction_results.items():
+        code_prediction = Common.parse_results(model_results, pc_info_dict)
+        assert len(code_prediction) == len(code_info_list)
+
+        for method_prediction, method_info_list in zip(code_prediction, code_info_list):
             one_method_astpaths = []
 
             if self.config.BEAM_WIDTH == 0:
                 single_timestep_prediction = method_prediction.predictions[0]
+                attention_paths = single_timestep_prediction.attention_paths
+                print(len(attention_paths), len(method_info_list))
 
-                assert len(single_timestep_prediction.attention_paths) == len(
-                    pc_info_list
-                )
+                assert len(attention_paths) == len(method_info_list)
 
-                for attention_obj, pc_info in zip(
-                    single_timestep_prediction.attention_paths, pc_info_list
-                ):
+                for attention_obj, pc_info in zip(attention_paths, method_info_list):
                     one_method_astpaths.append(
                         {
                             "source": attention_obj["token1"],

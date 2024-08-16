@@ -1,9 +1,11 @@
 import re
 import subprocess
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import numpy as np
+
+from code2seq.data.code import Code
 
 
 class ContextInfo:
@@ -163,48 +165,42 @@ class Common:
         return list(set(sequence))
 
     @staticmethod
-    def parse_results(result, pc_info_dict) -> Dict[int, PredictionResults]:
-        prediction_results = {}
-        results_counter = 0
-        attention_per_context: List[Dict[Tuple[str, str, str], ContextInfo]]
+    def parse_results(code: Code, pc_info_dict) -> Dict[int, PredictionResults]:
+        prediction_results = []
 
         # method
-        for single_method in result:
-            (
-                original_name,
-                top_suggestions,
-                top_scores,
-                attention_per_context,
-            ) = list(single_method)
-            current_method_prediction_results = PredictionResults(original_name)
+        for single_method in code.method_list:
+            current_method_prediction_results = PredictionResults(single_method.name)
 
-            if attention_per_context is not None:
-                word_attention_pairs = [
-                    (word, attention)
-                    for word, attention in zip(top_suggestions, attention_per_context)
-                    if Common.legal_method_names_checker(word)
+            if len(single_method.predict_name_list) > 0:
+                predict_name_list = single_method.predict_name_list
+
+                predict_name_list = [
+                    predict_name
+                    for predict_name in single_method.predict_name_list
+                    if Common.legal_method_names_checker(predict_name.predicted_name)
                 ]
 
                 # word
-                for predicted_word, attention_timestep in word_attention_pairs:
+                for predict_name in predict_name_list[:1]:
+                    # astpath
                     current_timestep_paths = []
-
-                    for context, path_context_info in attention_timestep.items():
-                        if context in pc_info_dict:
-                            pc_info = pc_info_dict[context]
+                    for path_context in predict_name.path_context_list:
+                        if path_context.get_key() in pc_info_dict:
+                            pc_info = pc_info_dict[path_context.get_key()]
                             current_timestep_paths.append(
                                 (
-                                    path_context_info.attention_score.item(),
-                                    path_context_info.vector,
+                                    path_context.attention.item(),
+                                    path_context.vector,
                                     pc_info,
                                 )
                             )
 
                     current_method_prediction_results.append_prediction(
-                        predicted_word, current_timestep_paths
+                        predict_name.predicted_name, current_timestep_paths
                     )
             else:
-                for predicted_seq in top_suggestions:
+                for predicted_seq in single_method.predict_name_list:
                     filtered_seq = [
                         word
                         for word in predicted_seq
@@ -214,8 +210,9 @@ class Common:
                         filtered_seq, None
                     )
 
-            prediction_results[results_counter] = current_method_prediction_results
-            results_counter += 1
+                raise ValueError("Error in extracting paths")
+
+            prediction_results.append(current_method_prediction_results)
         return prediction_results
 
     @staticmethod

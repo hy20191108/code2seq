@@ -3,7 +3,7 @@ import pickle
 import requests
 
 
-class Wrapper:
+class FlaskWrapper:
     def __init__(self) -> None:
         pass
 
@@ -16,7 +16,7 @@ class Wrapper:
 
 
 if __name__ == "__main__":
-    wrapper = Wrapper()
+    wrapper = FlaskWrapper()
 
     with open("Input.java") as f:
         source_code = f.read()
