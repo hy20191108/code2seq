@@ -18,6 +18,7 @@ dependencies = [
     "tqdm==4.66.4",
     "requests>=2.31.0",
     "ruff>=0.5.7",
+    "flask>=2.2.5",
 ]
 readme = "README.md"
 requires-python = ">= 3.7"
