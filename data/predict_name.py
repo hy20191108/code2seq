@@ -1,6 +1,6 @@
 from typing import List
 
-from code2seq.data.path_context import PathContext
+from data.path_context import PathContext
 
 
 class PredictName:

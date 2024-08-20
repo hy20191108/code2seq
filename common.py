@@ -5,7 +5,7 @@ from typing import Dict, List
 
 import numpy as np
 
-from code2seq.data.code import Code
+from data.code import Code
 
 
 class ContextInfo:
