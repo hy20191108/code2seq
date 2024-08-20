@@ -1,10 +1,10 @@
 import hashlib
 from pathlib import Path
 
-from common import Common
-from config import Config
-from extractor import Extractor
-from model import Model
+from code2seq.common import Common
+from code2seq.config import Config
+from code2seq.extractor import Extractor
+from code2seq.model import Model
 
 SHOW_TOP_CONTEXTS = 200
 MAX_PATH_LENGTH = 8
@@ -113,6 +113,10 @@ class InteractivePredictor:
             one_method_astpaths = []
 
             if self.config.BEAM_WIDTH == 0:
+                print(
+                    "Predicted:\t%s"
+                    % [step.prediction for step in method_prediction.predictions]
+                )
                 single_timestep_prediction = method_prediction.predictions[0]
                 attention_paths = single_timestep_prediction.attention_paths
                 print(len(attention_paths), len(method_info_list))
