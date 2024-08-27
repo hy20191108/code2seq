@@ -8,7 +8,7 @@ class FlaskWrapper:
         pass
 
     def get(self, source_code):
-        url = "http://127.0.0.1:5000/api/code2seq"
+        url = "http://127.0.0.1:5001/api/code2seq"
         data = {"source_code": source_code}
         response = requests.post(url, json=data)
         data_binary = response.content
