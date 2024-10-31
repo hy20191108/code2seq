@@ -33,21 +33,21 @@ Table of Contents
   * [Citation](#citation)
 
 ## Requirements
-  * [python3](https://www.linuxbabe.com/ubuntu/install-python-3-6-ubuntu-16-04-16-10-17-04) 
-  * TensorFlow 1.12 ([install](https://www.tensorflow.org/install/install_linux)). To check TensorFlow version:
-> python3 -c 'import tensorflow as tf; print(tf.\_\_version\_\_)'
-  - For a TensorFlow 2.1 implementation by [@Kolkir](https://github.com/Kolkir/), see: [https://github.com/Kolkir/code2seq](https://github.com/Kolkir/code2seq)
+  * [rye](https://rye.astral.sh/) 
+  * This repository use TensorFlow 1.12. For a TensorFlow 2.1 implementation by [@Kolkir](https://github.com/Kolkir/), see: [https://github.com/Kolkir/code2seq](https://github.com/Kolkir/code2seq)
   * For [creating a new Java dataset](#creating-and-preprocessing-a-new-java-dataset) or [manually examining a trained model](#step-4-manual-examination-of-a-trained-model) (any operation that requires parsing of a new code example): [JDK](https://openjdk.java.net/install/)
   * For creating a C# dataset: [dotnet-core](https://dotnet.microsoft.com/download) version 2.2 or newer.
-  * `pip install rouge` for computing rouge scores.
 
 ## Quickstart
 ### Step 0: Cloning this repository
 ```
-git clone https://github.com/tech-srl/code2seq
+git clone -b for-training https://github.com/hy20191108/code2seq
 cd code2seq
 ```
-
+### Step 1: Install python packages
+```
+rye sync
+```
 ### Step 1: Creating a new dataset from Java sources
 To obtain a preprocessed dataset to train a network on, you can either download our
 preprocessed dataset, or create a new dataset from Java source files.
