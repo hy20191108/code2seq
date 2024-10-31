@@ -1,0 +1,46 @@
+[project]
+name = "code2seq"
+version = "0.1.0"
+description = "Add your description here"
+dependencies = [
+    "keras==2.3.1",
+    "keras-applications==1.0.8",
+    "keras-preprocessing==1.1.2",
+    "markupsafe==2.1.5",
+    "networkx==2.6.3",
+    "numpy==1.18.5",
+    "protobuf==3.20",
+    "rouge==1.0.1",
+    "tensorboard>=1.13.0",
+    "tensorflow-gpu==1.15.0",
+    "tensorflow-addons>=0.19.0",
+    "tensorflow-estimator>=1.13.1",
+    "tqdm==4.66.4",
+    "requests>=2.31.0",
+    "ruff>=0.5.7",
+]
+readme = "README.md"
+requires-python = ">= 3.7"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/code2seq"]
+
+# [tool.mypy]
+# strict = true
+
+[tool.ruff.lint]
+extend-select = [
+    "I",  # isort
+    "UP", # pyupgrade
+]
