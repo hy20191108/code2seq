@@ -30,7 +30,7 @@ MAX_CONTEXTS=200
 SUBTOKEN_VOCAB_SIZE=186277
 TARGET_VOCAB_SIZE=26347
 NUM_THREADS=64
-PYTHON=python3
+PYTHON="rye run python3"
 ###########################################################
 
 TRAIN_DATA_FILE=${DATASET_NAME}.train.raw.txt

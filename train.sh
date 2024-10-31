@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 ###########################################################
 # Change the following values to train a new model.
 # type: the name of the new model, only affects the saved file name.
@@ -14,4 +15,4 @@ model_dir=models/${type}
 
 mkdir -p ${model_dir}
 set -e
-python3 -u code2seq.py --data ${data} --test ${test_data} --save_prefix ${model_dir}/model
+rye run python3 -u code2seq.py --data ${data} --test ${test_data} --save_prefix ${model_dir}/model
