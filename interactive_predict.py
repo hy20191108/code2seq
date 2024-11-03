@@ -7,7 +7,7 @@ from extractor import Extractor
 from model import Model
 
 SHOW_TOP_CONTEXTS = 3000
-MAX_PATH_LENGTH = 8
+MAX_PATH_LENGTH = 16
 MAX_PATH_WIDTH = 10000
 EXTRACTION_API = (
     "https://po3g2dx2qa.execute-api.us-east-1.amazonaws.com/production/extractmethods"
