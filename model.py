@@ -842,8 +842,10 @@ class Model:
             use_bias=False,
         )
 
-        # return batched_embed, path_nodes_aggregation
         return batched_embed, batched_embed
+        # return batched_embed, source_words_sum
+        # return batched_embed, path_nodes_aggregation
+        # return batched_embed, target_words_sum
 
     def build_test_graph(self, input_tensors):
         target_index = input_tensors[reader.TARGET_INDEX_KEY]
