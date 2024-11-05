@@ -1,6 +1,6 @@
 from typing import List
 
-from code2seq.data.predict_name import PredictName
+from data.predict_name import PredictName
 
 
 class Method:

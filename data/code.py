@@ -1,6 +1,6 @@
 from typing import List
 
-from code2seq.data.method import Method
+from data.method import Method
 
 
 class Code:

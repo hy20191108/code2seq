@@ -6,9 +6,9 @@ from code2seq.config import Config
 from code2seq.extractor import Extractor
 from code2seq.model import Model
 
-SHOW_TOP_CONTEXTS = 200
-MAX_PATH_LENGTH = 8
-MAX_PATH_WIDTH = 2
+SHOW_TOP_CONTEXTS = 3000
+MAX_PATH_LENGTH = 16
+MAX_PATH_WIDTH = 10000
 EXTRACTION_API = (
     "https://po3g2dx2qa.execute-api.us-east-1.amazonaws.com/production/extractmethods"
 )
@@ -30,7 +30,7 @@ class InteractivePredictor:
             EXTRACTION_API,
             JAR_PATH,
             MAX_PATH_LENGTH,
-            max_path_width=2,
+            MAX_PATH_WIDTH,
         )
 
     @staticmethod
@@ -100,6 +100,8 @@ class InteractivePredictor:
                 self.path_extractor.extract_paths(code_string)
             )
         except ValueError:
+            import traceback
+            traceback.print_exc()
             raise ValueError("Error in extracting paths")
 
         model_results = self.model.predict(predict_lines)

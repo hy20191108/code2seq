@@ -9,12 +9,12 @@ import tensorflow as tf
 from rouge import FilesRouge
 
 import reader
-from code2seq.data.code import Code
-from code2seq.data.method import Method
-from code2seq.data.path_context import PathContext
-from code2seq.data.predict_name import PredictName
 from common import Common, ContextInfo
 from config import Config
+from data.code import Code
+from data.method import Method
+from data.path_context import PathContext
+from data.predict_name import PredictName
 
 
 class Model:
@@ -843,6 +843,9 @@ class Model:
         )
 
         return batched_embed, batched_embed
+        # return batched_embed, source_words_sum
+        # return batched_embed, path_nodes_aggregation
+        # return batched_embed, target_words_sum
 
     def build_test_graph(self, input_tensors):
         target_index = input_tensors[reader.TARGET_INDEX_KEY]

@@ -43,7 +43,7 @@ def ExtractFeaturesForFile(args, file):
 
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = process.communicate()
-    output = out.decode()
+    output = out.decode('shift-jis')
 
     if err != b"":
         raise ValueError(err.decode())

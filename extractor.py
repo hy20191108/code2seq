@@ -30,7 +30,9 @@ class Extractor:
         )
 
     def emulated_post_request(self, jar_path, code_string):
-        with tempfile.NamedTemporaryFile("w+", delete=True) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            "w+", encoding="utf8", delete=True
+        ) as temp_file:
             temp_file.write(code_string)
             temp_file.flush()  # Ensure the written content is saved
 
@@ -70,7 +72,7 @@ class Extractor:
                 )
                 method_info_list.append(pc_info)
             space_padding = " " * (self.config.DATA_NUM_CONTEXTS - len(contexts))
-            print('len of current_result_line_parts', len(current_result_line_parts))
+            print("len of current_result_line_parts", len(current_result_line_parts))
             result_line = " ".join(current_result_line_parts) + space_padding
             result.append(result_line)
             code_info_list.append(method_info_list)
