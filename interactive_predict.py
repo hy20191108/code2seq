@@ -1,10 +1,10 @@
 import hashlib
 from pathlib import Path
 
-from code2seq.common import Common
-from code2seq.config import Config
-from code2seq.extractor import Extractor
-from code2seq.model import Model
+from common import Common
+from config import Config
+from extractor import Extractor
+from model import Model
 
 SHOW_TOP_CONTEXTS = 3000
 MAX_PATH_LENGTH = 16
