@@ -1,4 +1,4 @@
-MAX_PATH_LENGTH = 16
+MAX_PATH_LENGTH = 8
 
 
 class Config:
