@@ -1,0 +1,41 @@
+[project]
+name = "code2seq-tf-2-x"
+version = "0.1.0"
+description = "Add your description here"
+authors = [{ name = "Haruhiko Yoshioka", email = "zwwp9976@gmail.com" }]
+dependencies = [
+    "clang",
+    "flatbuffers",
+    "joblib",
+    "libclang",
+    "lmdb",
+    "networkx",
+    "numpy==1.19.2",
+    "requests",
+    "rouge==0.3.2",
+    "scikit_learn",
+    "setuptools",
+    "six",
+    "tensorboard",
+    "tensorflow==2.1",
+    "tensorflow_addons==0.8.3",
+    "tensorflow_estimator",
+    "tqdm",
+    "protobuf==3.20",
+]
+readme = "README.md"
+requires-python = ">= 3.7"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/code2seq_tf_2_x"]
