@@ -1,6 +1,8 @@
 import hashlib
 from pathlib import Path
 
+from shared.logger_manager import LoggerManager
+
 from common import Common
 from config import Config
 from extractor import Extractor
@@ -12,6 +14,7 @@ MAX_PATH_WIDTH = 10000
 EXTRACTION_API = (
     "https://po3g2dx2qa.execute-api.us-east-1.amazonaws.com/production/extractmethods"
 )
+
 JAR_PATH = (
     Path(__file__).parent
     / "JavaExtractor/JPredict/target/JavaExtractor-0.0.2-SNAPSHOT.jar"
@@ -32,6 +35,13 @@ class InteractivePredictor:
             MAX_PATH_LENGTH,
             MAX_PATH_WIDTH,
         )
+        self.logger = LoggerManager("interactive_predict").getlogger()
+        self.logger.info("Configured interactive predictor")
+        self.logger.info(f"JAR_PATH: {JAR_PATH}")
+        self.logger.info(f"EXTRACTION_API: {EXTRACTION_API}")
+        self.logger.info(f"SHOW_TOP_CONTEXTS: {SHOW_TOP_CONTEXTS}")
+        self.logger.info(f"MAX_PATH_LENGTH: {MAX_PATH_LENGTH}")
+        self.logger.info(f"MAX_PATH_WIDTH: {MAX_PATH_WIDTH}")
 
     @staticmethod
     def read_file(input_filename):
@@ -101,6 +111,7 @@ class InteractivePredictor:
             )
         except ValueError:
             import traceback
+
             traceback.print_exc()
             raise ValueError("Error in extracting paths")
 
