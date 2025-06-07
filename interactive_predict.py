@@ -123,7 +123,7 @@ class InteractivePredictor:
         assert len(code_prediction) == len(code_info_list)
 
         for method_prediction, method_info_list in zip(code_prediction, code_info_list):
-            one_method_astpaths = []
+            one_method_path_contexts = []
 
             if self.config.BEAM_WIDTH == 0:
                 print(
@@ -137,7 +137,7 @@ class InteractivePredictor:
                 assert len(attention_paths) == len(method_info_list)
 
                 for attention_obj, pc_info in zip(attention_paths, method_info_list):
-                    one_method_astpaths.append(
+                    one_method_path_contexts.append(
                         {
                             "source": attention_obj["token1"],
                             "path": attention_obj["path"],
@@ -152,7 +152,7 @@ class InteractivePredictor:
                     (
                         method_prediction.original_name,
                         -1,  # use -1 insted of raw_prediction.code_vector,
-                        one_method_astpaths,
+                        one_method_path_contexts,
                     )
                 )
             else:

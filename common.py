@@ -183,7 +183,7 @@ class Common:
 
                 # word
                 for predict_name in predict_name_list[:1]:
-                    # astpath
+                    # path_context
                     current_timestep_paths = []
                     for path_context in predict_name.path_context_list:
                         if path_context.get_key() in pc_info_dict:
