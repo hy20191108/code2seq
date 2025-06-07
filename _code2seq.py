@@ -3,6 +3,9 @@ from argparse import ArgumentParser
 import numpy as np
 import tensorflow as tf
 
+# Disable eager execution so that the legacy code can run on TensorFlow 2.x
+tf.compat.v1.disable_eager_execution()
+
 from config import Config
 from interactive_predict import InteractivePredictor
 from model import Model
