@@ -33,10 +33,10 @@ Table of Contents
   * [Citation](#citation)
 
 ## Requirements
-  * [python3](https://www.linuxbabe.com/ubuntu/install-python-3-6-ubuntu-16-04-16-10-17-04) 
-  * TensorFlow 1.12 ([install](https://www.tensorflow.org/install/install_linux)). To check TensorFlow version:
-> python3 -c 'import tensorflow as tf; print(tf.\_\_version\_\_)'
-  - For a TensorFlow 2.1 implementation by [@Kolkir](https://github.com/Kolkir/), see: [https://github.com/Kolkir/code2seq](https://github.com/Kolkir/code2seq)
+  * [python3](https://www.linuxbabe.com/ubuntu/install-python-3-6-ubuntu-16-04-16-10-17-04)
+  * [Rye](https://github.com/mitsuhiko/rye) を用いて依存関係を管理します。リポジトリをクローンしたら `rye sync` を実行して必要なパッケージをインストールしてください。
+  * TensorFlow 2.x ([install](https://www.tensorflow.org/install)). To check TensorFlow version:
+    > python3 -c 'import tensorflow as tf; print(tf.__version__)'
   * For [creating a new Java dataset](#creating-and-preprocessing-a-new-java-dataset) or [manually examining a trained model](#step-4-manual-examination-of-a-trained-model) (any operation that requires parsing of a new code example): [JDK](https://openjdk.java.net/install/)
   * For creating a C# dataset: [dotnet-core](https://dotnet.microsoft.com/download) version 2.2 or newer.
   * `pip install rouge` for computing rouge scores.
@@ -46,6 +46,7 @@ Table of Contents
 ```
 git clone https://github.com/tech-srl/code2seq
 cd code2seq
+rye sync
 ```
 
 ### Step 1: Creating a new dataset from Java sources
@@ -100,6 +101,10 @@ Suppose that iteration #52 is our chosen model, run:
 ```
 python3 code2seq.py --load models/java-large-model/model_iter52.release --test data/java-large/java-large.test.c2s
 ```
+TensorFlow 2.x を利用する場合は `--tf2` フラグを付けます:
+```
+python3 code2seq.py --tf2 --load models/java-large-model/model_iter52.release --test data/java-large/java-large.test.c2s
+```
 While evaluating, a file named "log.txt" is written to the same dir as the saved models, with each test example name and the model's prediction.
 
 ### Step 4: Manual examination of a trained model
@@ -107,6 +112,7 @@ To manually examine a trained model, run:
 ```
 python3 code2seq.py --load models/java-large-model/model_iter52.release --predict
 ```
+同様に `--tf2` を付けて実行してください。
 After the model loads, follow the instructions and edit the file `Input.java` and enter a Java 
 method or code snippet, and examine the model's predictions and attention scores.
 

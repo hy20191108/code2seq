@@ -17,6 +17,9 @@ logger.info("code2seq started")
 import pickle
 import numpy as np
 import tensorflow as tf
+
+# Disable eager execution so that the legacy code can run on TensorFlow 2.x
+tf.compat.v1.disable_eager_execution()
 from flask import Flask, jsonify, request
 
 import _code2seq

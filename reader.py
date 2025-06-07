@@ -2,6 +2,9 @@ import os
 
 import tensorflow as tf
 
+# Disable eager execution so that the legacy code can run on TensorFlow 2.x
+tf.compat.v1.disable_eager_execution()
+
 from common import Common
 
 TARGET_INDEX_KEY = "TARGET_INDEX_KEY"
