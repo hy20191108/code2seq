@@ -6,6 +6,9 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import tensorflow as tf
+
+# Disable eager execution so that the legacy code runs on TensorFlow 2
+tf.compat.v1.disable_eager_execution()
 from rouge import FilesRouge
 
 import reader

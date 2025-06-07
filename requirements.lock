@@ -102,14 +102,14 @@ six==1.16.0
     # via rouge
     # via tensorboard
     # via tensorflow
-tensorboard==1.15.0
+tensorboard==2.15.0
     # via code2seq
     # via tensorflow
-tensorflow==1.15.0
+tensorflow==2.15.0
     # via code2seq
 tensorflow-addons==0.19.0
     # via code2seq
-tensorflow-estimator==1.15.1
+tensorflow-estimator==2.15.0
     # via code2seq
     # via tensorflow
 termcolor==2.3.0
