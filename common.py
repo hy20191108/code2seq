@@ -60,30 +60,30 @@ class SingleTimeStepPrediction:
 
 class PathContextInformation:
     def __init__(self, context):
-        self.token1 = context["name1"]
+        self.source = context["name1"]
         self.longPath = context["path"]
         self.shortPath = context["shortPath"]
-        self.token2 = context["name2"]
-        self.token1_begin = context["name1Begin"]
-        self.token1_end = context["name1End"]
-        self.token2_begin = context["name2Begin"]
-        self.token2_end = context["name2End"]
+        self.target = context["name2"]
+        self.source_begin = context["name1Begin"]
+        self.source_end = context["name1End"]
+        self.target_begin = context["name2Begin"]
+        self.target_end = context["name2End"]
 
     @property
     def lineColumns(self):
         return (
-            self.token1_begin["line"],
-            self.token1_begin["column"],
-            self.token1_end["line"],
-            self.token1_end["column"],
-            self.token2_begin["line"],
-            self.token2_begin["column"],
-            self.token2_end["line"],
-            self.token2_end["column"],
+            self.source_begin["line"],
+            self.source_begin["column"],
+            self.source_end["line"],
+            self.source_end["column"],
+            self.target_begin["line"],
+            self.target_begin["column"],
+            self.target_end["line"],
+            self.target_end["column"],
         )
 
     def __str__(self):
-        return f"{self.token1},{self.shortPath},{self.token2}"
+        return f"{self.source},{self.shortPath},{self.target}"
 
 
 class Common:
