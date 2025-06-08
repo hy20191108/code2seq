@@ -1,9 +1,10 @@
 import re
 import subprocess
 import sys
-from typing import Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from numpy.typing import NDArray
 
 from data.code import Code
 
@@ -33,7 +34,7 @@ class ContextInfo:
 
 
 class PredictionResults:
-    def __init__(self, original_name):
+    def __init__(self, original_name: str) -> None:
         self.original_name = original_name
         self.predictions: List[SingleTimeStepPrediction] = list()
 
@@ -59,7 +60,7 @@ class SingleTimeStepPrediction:
 
 
 class PathContextInformation:
-    def __init__(self, context):
+    def __init__(self, context: Dict[str, Any]) -> None:
         self.source = context["name1"]
         self.longPath = context["path"]
         self.shortPath = context["shortPath"]
@@ -70,7 +71,7 @@ class PathContextInformation:
         self.target_end = context["name2End"]
 
     @property
-    def lineColumns(self):
+    def lineColumns(self) -> Tuple[int, int, int, int, int, int, int, int]:
         return (
             self.source_begin["line"],
             self.source_begin["column"],
@@ -82,7 +83,7 @@ class PathContextInformation:
             self.target_end["column"],
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.source},{self.shortPath},{self.target}"
 
 
