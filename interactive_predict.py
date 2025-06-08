@@ -3,7 +3,7 @@ from pathlib import Path
 
 from shared.logger_manager import LoggerManager
 
-from common import Common
+from common import Common, SingleTimeStepPrediction
 from config import Config
 from extractor import Extractor
 from model import Model
@@ -81,6 +81,7 @@ class InteractivePredictor:
                     for timestep, single_timestep_prediction in enumerate(
                         method_prediction.predictions
                     ):
+                        single_timestep_prediction: SingleTimeStepPrediction
                         print("Attention:")
                         print(
                             "TIMESTEP: %d\t: %s"
@@ -93,9 +94,9 @@ class InteractivePredictor:
                                 "score:{:f}\tvecHash:{}\tcontext: {},{},{}".format(
                                     attention_obj["score"],
                                     vector_hash,
-                                    attention_obj["token1"],
+                                    attention_obj["source"],
                                     attention_obj["path"],
-                                    attention_obj["token2"],
+                                    attention_obj["target"],
                                 )
                             )
                 else:
@@ -115,6 +116,7 @@ class InteractivePredictor:
             traceback.print_exc()
             raise ValueError("Error in extracting paths")
 
+        # モデルから直接ベクトル情報を取得
         model_results = self.model.predict(predict_lines)
 
         result_list = []
@@ -136,15 +138,19 @@ class InteractivePredictor:
 
                 assert len(attention_paths) == len(method_info_list)
 
+                # attention_pathsには既に単語ベクトルとASTパスベクトルが含まれている
                 for attention_obj, pc_info in zip(attention_paths, method_info_list):
                     one_method_path_contexts.append(
                         {
-                            "source": attention_obj["token1"],
+                            "source": attention_obj["source"],
                             "path": attention_obj["path"],
-                            "target": attention_obj["token2"],
+                            "target": attention_obj["target"],
                             "lineColumns": pc_info.lineColumns,
                             "attention": attention_obj["score"],
                             "vector": attention_obj["vector"],
+                            "source_vector": attention_obj["source_vector"],
+                            "target_vector": attention_obj["target_vector"],
+                            "astpath_vector": attention_obj["astpath_vector"],
                         }
                     )
 

@@ -95,7 +95,7 @@ class Common:
     UNK = "<UNK>"
 
     @staticmethod
-    def normalize_word(word):
+    def normalize_word(word: str) -> str:
         stripped = re.sub(r"[^a-zA-Z]", "", word)
         if len(stripped) == 0:
             return word.lower()
@@ -217,7 +217,7 @@ class Common:
         return prediction_results
 
     @staticmethod
-    def compute_bleu(ref_file_name, predicted_file_name):
+    def compute_bleu(ref_file_name: str, predicted_file_name: str) -> None:
         with open(predicted_file_name) as predicted_file:
             pipe = subprocess.Popen(
                 ["perl", "scripts/multi-bleu.perl", ref_file_name],
