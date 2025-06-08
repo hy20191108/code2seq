@@ -140,19 +140,34 @@ class InteractivePredictor:
 
                 # attention_pathsには既に単語ベクトルとASTパスベクトルが含まれている
                 for attention_obj, pc_info in zip(attention_paths, method_info_list):
-                    one_method_path_contexts.append(
-                        {
-                            "source": attention_obj["source"],
-                            "path": attention_obj["path"],
-                            "target": attention_obj["target"],
-                            "lineColumns": pc_info.lineColumns,
-                            "attention": attention_obj["score"],
-                            "vector": attention_obj["vector"],
-                            "source_vector": attention_obj["source_vector"],
-                            "target_vector": attention_obj["target_vector"],
-                            "astpath_vector": attention_obj["astpath_vector"],
-                        }
-                    )
+                    # eye2vec/context_model.pyと整合性を取るため辞書形式で返す
+                    import numpy as np
+
+                    # numpy配列の型を保持して辞書作成
+                    path_context_dict = {
+                        "lineColumns": pc_info.lineColumns,
+                        "source": attention_obj["source"],
+                        "target": attention_obj["target"],
+                        "path": attention_obj["path"],
+                        "attention": attention_obj["score"],
+                        "vector": np.asarray(attention_obj["vector"], dtype=np.float32),
+                        "source_vector": np.asarray(
+                            attention_obj["source_vector"], dtype=np.float32
+                        )
+                        if attention_obj["source_vector"] is not None
+                        else None,
+                        "target_vector": np.asarray(
+                            attention_obj["target_vector"], dtype=np.float32
+                        )
+                        if attention_obj["target_vector"] is not None
+                        else None,
+                        "astpath_vector": np.asarray(
+                            attention_obj["astpath_vector"], dtype=np.float32
+                        )
+                        if attention_obj["astpath_vector"] is not None
+                        else None,
+                    }
+                    one_method_path_contexts.append(path_context_dict)
 
                 result_list.append(
                     (

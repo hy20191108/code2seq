@@ -285,3 +285,39 @@ OpenNMT-py can then be trained over these training source and target files.
     url={https://openreview.net/forum?id=H1gKYo09tX},
 }
 ```
+
+## 🔧 **Flask通信での型安全性修正** (2024年対応)
+
+### 📋 **修正内容**
+
+eye2vecとの統合において、numpy配列がリストに変換される問題を解決しました。
+
+#### 🎯 **問題**
+```python
+# ❌ 修正前
+'list' object has no attribute 'tobytes'  # eye2vec側でエラー
+```
+
+#### ✅ **修正**
+```python
+# interactive_predict.py: 辞書形式でnumpy配列の型を保持
+path_context_dict = {
+    "lineColumns": pc_info.lineColumns,
+    "vector": np.asarray(attention_obj["vector"], dtype=np.float32),
+    "source_vector": np.asarray(attention_obj["source_vector"], dtype=np.float32),
+    # ...
+}
+```
+
+### 🧪 **テスト**
+```bash
+python tests/test_type_conversion_tracking.py
+python tests/test_dict_access_analysis.py
+```
+
+### 📄 **API仕様**
+eye2vec/context_model.pyとの整合性を確保するため、以下のキーを持つ辞書形式で返します：
+- `lineColumns`: 座標情報
+- `source`, `target`, `path`: 構文要素
+- `attention`: アテンション重み  
+- `vector`, `source_vector`, `target_vector`, `astpath_vector`: numpy配列ベクトル

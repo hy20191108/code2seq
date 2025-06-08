@@ -12,6 +12,7 @@ from common import Common
 from config import Config
 from data.code import Code
 from data.method import Method
+from data.path_context import PathContext
 from data.predict_name import PredictName
 
 
@@ -840,6 +841,11 @@ class Model:
             use_bias=False,
         )
 
+        # batched_embed is path context
+        # source_words_sum is source word
+        # path_nodes_aggregation is astpath
+        # target_words_sum is target word
+
         return batched_embed, source_words_sum, path_nodes_aggregation, target_words_sum
 
     def build_test_graph(self, input_tensors):
@@ -915,6 +921,7 @@ class Model:
             topk_values,
             target_index,
             attention_weights,
+            batched_contexts,
             path_nodes_aggregation,
             source_words_sum,
             target_words_sum,
@@ -941,6 +948,7 @@ class Model:
                 self.predict_top_scores_op,
                 _,
                 self.attention_weights_op,
+                self.batched_contexts_op,
                 self.path_nodes_aggregation_op,
                 self.source_words_sum_op,
                 self.target_words_sum_op,
@@ -963,6 +971,7 @@ class Model:
                 top_scores,
                 true_target_strings,
                 attention_weights,
+                batched_contexts,
                 path_nodes_aggregation,
                 source_words_sum,
                 target_words_sum,
@@ -975,6 +984,7 @@ class Model:
                     self.predict_top_scores_op,
                     self.predict_target_strings_op,
                     self.attention_weights_op,
+                    self.batched_contexts_op,
                     self.path_nodes_aggregation_op,
                     self.source_words_sum_op,
                     self.target_words_sum_op,
@@ -988,6 +998,7 @@ class Model:
             attention_weights: np.ndarray
 
             top_scores = np.squeeze(top_scores, axis=0)
+            batched_contexts = np.squeeze(batched_contexts, axis=0)
             path_nodes_aggregation = np.squeeze(path_nodes_aggregation, axis=0)
             source_words_sum = np.squeeze(source_words_sum, axis=0)
             target_words_sum = np.squeeze(target_words_sum, axis=0)
@@ -1011,7 +1022,19 @@ class Model:
                     self.index_to_target[idx] for idx in predicted_indices
                 ]  # (batch, target_length)
 
-            vector_list = [vector for vector in path_nodes_aggregation]
+            # 各ベクトル配列をリスト化（一貫性のため）
+            path_context_vectors = [
+                vector for vector in batched_contexts
+            ]  # パスコンテキストベクトルのリスト
+            source_vectors = [
+                vector for vector in source_words_sum
+            ]  # ソース単語ベクトルのリスト
+            target_vectors = [
+                vector for vector in target_words_sum
+            ]  # ターゲット単語ベクトルのリスト
+            astpath_vectors = [
+                vector for vector in path_nodes_aggregation
+            ]  # ASTパスベクトルのリスト
 
             if self.config.BEAM_WIDTH == 0:
                 method = self.get_method(
@@ -1019,10 +1042,10 @@ class Model:
                     path_strings,
                     path_target_string,
                     attention_weights,
-                    vector_list,
-                    source_words_sum,
-                    target_words_sum,
-                    path_nodes_aggregation,
+                    path_context_vectors,  # パスコンテキストベクトルのリスト
+                    source_vectors,  # ソース単語ベクトルのリスト
+                    target_vectors,  # ターゲット単語ベクトルのリスト
+                    astpath_vectors,  # ASTパスベクトルのリスト
                 )
             else:
                 method = Method()
@@ -1047,16 +1070,19 @@ class Model:
         path_strings,
         target_strings,
         attention_weights,
-        vectors,
-        source_words_sum=None,
-        target_words_sum=None,
-        path_nodes_aggregation=None,
-    ):
+        path_context_vectors,  # パスコンテキストベクトルのリスト
+        source_vectors,  # ソース単語ベクトルのリスト (必須)
+        target_vectors,  # ターゲット単語ベクトルのリスト (必須)
+        astpath_vectors,  # ASTパスベクトルのリスト (必須)
+    ) -> Method:
         assert (
             len(source_strings)
             == len(path_strings)
             == len(target_strings)
-            == len(vectors)
+            == len(path_context_vectors)
+            == len(source_vectors)  # ソース単語ベクトルの長さも確認
+            == len(target_vectors)  # ターゲット単語ベクトルの長さも確認
+            == len(astpath_vectors)  # ASTパスベクトルの長さも確認
         )
         # attention_weights:  (time, contexts)
         method = Method()
@@ -1064,42 +1090,26 @@ class Model:
             predict_name = PredictName()
 
             for i, (source, path, target, weight, vector) in enumerate(
-                zip(source_strings, path_strings, target_strings, time_step, vectors)
+                zip(
+                    source_strings,
+                    path_strings,
+                    target_strings,
+                    time_step,
+                    path_context_vectors,
+                )
             ):
-                # 辞書形式でパスコンテキスト情報を格納
-                path_context_dict = {
-                    "source": Common.binary_to_string(source),
-                    "path": Common.binary_to_string(path),
-                    "target": Common.binary_to_string(target),
-                    "attention": weight.item()
-                    if hasattr(weight, "item")
-                    else float(weight),
-                    "vector": vector.tolist()
-                    if hasattr(vector, "tolist")
-                    else list(vector),
-                    "source_vector": source_words_sum[i].tolist()
-                    if source_words_sum is not None and i < len(source_words_sum)
-                    else None,
-                    "target_vector": target_words_sum[i].tolist()
-                    if target_words_sum is not None and i < len(target_words_sum)
-                    else None,
-                    "astpath_vector": path_nodes_aggregation[i].tolist()
-                    if path_nodes_aggregation is not None
-                    and i < len(path_nodes_aggregation)
-                    else None,
-                    "lineColumns": [
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                    ],  # デフォルト座標（必要に応じて実際の座標を設定）
-                }
+                path_context_obj = PathContext(
+                    source=Common.binary_to_string(source),
+                    short_path=Common.binary_to_string(path),
+                    target=Common.binary_to_string(target),
+                    attention=weight,
+                    vector=vector,  # numpy配列のまま
+                    source_vector=source_vectors[i],  # numpy配列のまま
+                    target_vector=target_vectors[i],  # numpy配列のまま
+                    astpath_vector=astpath_vectors[i],  # numpy配列のまま
+                )
 
-                predict_name.append(path_context_dict)
+                predict_name.append(path_context_obj)
 
             method.append(predict_name)
         return method

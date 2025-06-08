@@ -598,8 +598,8 @@ class TestFlaskApp:
                 if len(path_contexts) > 0:
                     pc = path_contexts[0]
                     if all(
-                        key in pc
-                        for key in [
+                        hasattr(pc, attr)
+                        for attr in [
                             "vector",
                             "source_vector",
                             "target_vector",

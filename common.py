@@ -4,7 +4,6 @@ import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from numpy.typing import NDArray
 
 from data.code import Code
 
@@ -38,22 +37,34 @@ class PredictionResults:
         self.original_name = original_name
         self.predictions: List[SingleTimeStepPrediction] = list()
 
-    def append_prediction(self, name, current_timestep_paths):
+    def append_prediction(
+        self, name: str, current_timestep_paths: Optional[List[Any]]
+    ) -> None:
         self.predictions.append(SingleTimeStepPrediction(name, current_timestep_paths))
 
 
 class SingleTimeStepPrediction:
-    def __init__(self, prediction, attention_paths):
+    def __init__(self, prediction: str, attention_paths: Optional[List[Any]]) -> None:
         self.prediction = prediction
         if attention_paths is not None:
             paths_with_scores = []
-            for attention_score, vector, pc_info in attention_paths:
+            for (
+                attention_score,
+                vector,
+                path_context_info,
+                source_vector,
+                target_vector,
+                astpath_vector,
+            ) in attention_paths:
                 path_context_dict = {
                     "score": attention_score,
                     "vector": vector,
-                    "path": pc_info.longPath,
-                    "token1": pc_info.token1,
-                    "token2": pc_info.token2,
+                    "path": path_context_info.longPath,
+                    "source": path_context_info.source,
+                    "target": path_context_info.target,
+                    "source_vector": source_vector,
+                    "target_vector": target_vector,
+                    "astpath_vector": astpath_vector,
                 }
                 paths_with_scores.append(path_context_dict)
             self.attention_paths = paths_with_scores
@@ -86,6 +97,15 @@ class PathContextInformation:
     def __str__(self) -> str:
         return f"{self.source},{self.shortPath},{self.target}"
 
+    # 後方互換性のためのプロパティ
+    @property
+    def token1(self) -> str:
+        return self.source
+
+    @property
+    def token2(self) -> str:
+        return self.target
+
 
 class Common:
     internal_delimiter = "|"
@@ -103,7 +123,7 @@ class Common:
             return stripped.lower()
 
     @staticmethod
-    def load_histogram(path, max_size=None):
+    def load_histogram(path: str, max_size: Optional[int] = None) -> Dict[str, int]:
         histogram = {}
         with open(path) as file:
             for line in file.readlines():
@@ -118,7 +138,11 @@ class Common:
         return dict(sorted_histogram[:max_size])
 
     @staticmethod
-    def load_vocab_from_dict(word_to_count, add_values=[], max_size=None):
+    def load_vocab_from_dict(
+        word_to_count: Dict[str, int],
+        add_values: List[str] = [],
+        max_size: Optional[int] = None,
+    ) -> Tuple[Dict[str, int], Dict[int, str], int]:
         word_to_index, index_to_word = {}, {}
         current_index = 0
         for value in add_values:
@@ -127,7 +151,9 @@ class Common:
             current_index += 1
         sorted_counts = [
             (k, word_to_count[k])
-            for k in sorted(word_to_count, key=word_to_count.get, reverse=True)
+            for k in sorted(
+                word_to_count.keys(), key=lambda x: word_to_count[x], reverse=True
+            )
         ]
         limited_sorted = dict(sorted_counts[:max_size])
         for word, count in limited_sorted.items():
@@ -137,36 +163,42 @@ class Common:
         return word_to_index, index_to_word, current_index
 
     @staticmethod
-    def binary_to_string(binary_string: bytes):
+    def binary_to_string(binary_string: bytes) -> str:
         return binary_string.decode("utf-8")
 
     @staticmethod
-    def binary_to_string_list(binary_string_list):
+    def binary_to_string_list(binary_string_list: List[bytes]) -> List[str]:
         return [Common.binary_to_string(w) for w in binary_string_list]
 
     @staticmethod
-    def binary_to_string_matrix(binary_string_matrix):
+    def binary_to_string_matrix(
+        binary_string_matrix: List[List[bytes]],
+    ) -> List[List[str]]:
         return [Common.binary_to_string_list(l) for l in binary_string_matrix]
 
     @staticmethod
-    def binary_to_string_3d(binary_string_tensor):
+    def binary_to_string_3d(
+        binary_string_tensor: List[List[List[bytes]]],
+    ) -> List[List[List[str]]]:
         return [Common.binary_to_string_matrix(l) for l in binary_string_tensor]
 
     @staticmethod
-    def legal_method_names_checker(name):
+    def legal_method_names_checker(name: str) -> bool:
         return name not in [Common.UNK, Common.PAD, Common.EOS]
 
     @staticmethod
-    def filter_impossible_names(top_words):
+    def filter_impossible_names(top_words: List[str]) -> List[str]:
         result = list(filter(Common.legal_method_names_checker, top_words))
         return result
 
     @staticmethod
-    def unique(sequence):
+    def unique(sequence: List[Any]) -> List[Any]:
         return list(set(sequence))
 
     @staticmethod
-    def parse_results(code: Code, pc_info_dict) -> Dict[int, PredictionResults]:
+    def parse_results(
+        code: Code, pc_info_dict: Dict[Any, Any]
+    ) -> List[PredictionResults]:
         prediction_results = []
 
         # method
@@ -187,13 +219,22 @@ class Common:
                     # path_context
                     current_timestep_paths = []
                     for path_context in predict_name.path_context_list:
-                        if path_context.get_key() in pc_info_dict:
-                            pc_info = pc_info_dict[path_context.get_key()]
+                        # path_contextはPathContextオブジェクトで渡される（model.pyのget_method関数で作成）
+                        key = (
+                            path_context.source,
+                            path_context.path,
+                            path_context.target,
+                        )
+                        if key in pc_info_dict:
+                            pc_info = pc_info_dict[key]
                             current_timestep_paths.append(
                                 (
-                                    path_context.attention.item(),
+                                    path_context.attention,
                                     path_context.vector,
                                     pc_info,
+                                    path_context.source_vector,
+                                    path_context.target_vector,
+                                    path_context.astpath_vector,
                                 )
                             )
 
