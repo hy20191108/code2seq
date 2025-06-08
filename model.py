@@ -2,18 +2,16 @@ import os
 import pickle
 import shutil
 import time
-from typing import Dict, List, Tuple
 
 import numpy as np
 import tensorflow as tf
 from rouge import FilesRouge
 
 import reader
-from common import Common, ContextInfo
+from common import Common
 from config import Config
 from data.code import Code
 from data.method import Method
-from data.path_context import PathContext
 from data.predict_name import PredictName
 
 
@@ -842,10 +840,7 @@ class Model:
             use_bias=False,
         )
 
-        return batched_embed, batched_embed
-        # return batched_embed, source_words_sum
-        # return batched_embed, path_nodes_aggregation
-        # return batched_embed, target_words_sum
+        return batched_embed, source_words_sum, path_nodes_aggregation, target_words_sum
 
     def build_test_graph(self, input_tensors):
         target_index = input_tensors[reader.TARGET_INDEX_KEY]
@@ -879,7 +874,12 @@ class Model:
                 trainable=False,
             )
 
-            batched_contexts, path_nodes_aggregation = self.compute_contexts(
+            (
+                batched_contexts,
+                source_words_sum,
+                path_nodes_aggregation,
+                target_words_sum,
+            ) = self.compute_contexts(
                 subtoken_vocab=subtoken_vocab,
                 nodes_vocab=nodes_vocab,
                 source_input=path_source_indices,
@@ -916,6 +916,8 @@ class Model:
             target_index,
             attention_weights,
             path_nodes_aggregation,
+            source_words_sum,
+            target_words_sum,
         )
 
     def predict(self, predict_data_lines):
@@ -940,6 +942,8 @@ class Model:
                 _,
                 self.attention_weights_op,
                 self.path_nodes_aggregation_op,
+                self.source_words_sum_op,
+                self.target_words_sum_op,
             ) = self.build_test_graph(reader_output)
             self.predict_source_string = reader_output[reader.PATH_SOURCE_STRINGS_KEY]
             self.predict_path_string = reader_output[reader.PATH_STRINGS_KEY]
@@ -960,6 +964,8 @@ class Model:
                 true_target_strings,
                 attention_weights,
                 path_nodes_aggregation,
+                source_words_sum,
+                target_words_sum,
                 path_source_string,
                 path_strings,
                 path_target_string,
@@ -970,6 +976,8 @@ class Model:
                     self.predict_target_strings_op,
                     self.attention_weights_op,
                     self.path_nodes_aggregation_op,
+                    self.source_words_sum_op,
+                    self.target_words_sum_op,
                     self.predict_source_string,
                     self.predict_path_string,
                     self.predict_path_target_string,
@@ -981,6 +989,8 @@ class Model:
 
             top_scores = np.squeeze(top_scores, axis=0)
             path_nodes_aggregation = np.squeeze(path_nodes_aggregation, axis=0)
+            source_words_sum = np.squeeze(source_words_sum, axis=0)
+            target_words_sum = np.squeeze(target_words_sum, axis=0)
             path_source_string: np.ndarray = path_source_string.reshape(-1)
             path_strings: np.ndarray = path_strings.reshape(-1)
             path_target_string: np.ndarray = path_target_string.reshape(-1)
@@ -1010,6 +1020,9 @@ class Model:
                     path_target_string,
                     attention_weights,
                     vector_list,
+                    source_words_sum,
+                    target_words_sum,
+                    path_nodes_aggregation,
                 )
             else:
                 method = Method()
@@ -1030,8 +1043,15 @@ class Model:
 
     @staticmethod
     def get_method(
-        source_strings, path_strings, target_strings, attention_weights, vectors
-    ) -> List[Dict[Tuple[str, str, str], ContextInfo]]:
+        source_strings,
+        path_strings,
+        target_strings,
+        attention_weights,
+        vectors,
+        source_words_sum=None,
+        target_words_sum=None,
+        path_nodes_aggregation=None,
+    ):
         assert (
             len(source_strings)
             == len(path_strings)
@@ -1043,17 +1063,43 @@ class Model:
         for time_step in attention_weights:
             predict_name = PredictName()
 
-            for source, path, target, weight, vector in zip(
-                source_strings, path_strings, target_strings, time_step, vectors
+            for i, (source, path, target, weight, vector) in enumerate(
+                zip(source_strings, path_strings, target_strings, time_step, vectors)
             ):
-                pc = PathContext(
-                    Common.binary_to_string(source),
-                    Common.binary_to_string(path),
-                    Common.binary_to_string(target),
-                    weight,
-                    vector,
-                )
-                predict_name.append(pc)
+                # 辞書形式でパスコンテキスト情報を格納
+                path_context_dict = {
+                    "source": Common.binary_to_string(source),
+                    "path": Common.binary_to_string(path),
+                    "target": Common.binary_to_string(target),
+                    "attention": weight.item()
+                    if hasattr(weight, "item")
+                    else float(weight),
+                    "vector": vector.tolist()
+                    if hasattr(vector, "tolist")
+                    else list(vector),
+                    "source_vector": source_words_sum[i].tolist()
+                    if source_words_sum is not None and i < len(source_words_sum)
+                    else None,
+                    "target_vector": target_words_sum[i].tolist()
+                    if target_words_sum is not None and i < len(target_words_sum)
+                    else None,
+                    "astpath_vector": path_nodes_aggregation[i].tolist()
+                    if path_nodes_aggregation is not None
+                    and i < len(path_nodes_aggregation)
+                    else None,
+                    "lineColumns": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ],  # デフォルト座標（必要に応じて実際の座標を設定）
+                }
+
+                predict_name.append(path_context_dict)
 
             method.append(predict_name)
         return method
