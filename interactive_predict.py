@@ -3,7 +3,7 @@ from pathlib import Path
 
 from shared.logger_manager import LoggerManager
 
-from common import Common
+from common import Common, SingleTimeStepPrediction
 from config import Config
 from extractor import Extractor
 from model import Model
@@ -81,6 +81,7 @@ class InteractivePredictor:
                     for timestep, single_timestep_prediction in enumerate(
                         method_prediction.predictions
                     ):
+                        single_timestep_prediction: SingleTimeStepPrediction
                         print("Attention:")
                         print(
                             "TIMESTEP: %d\t: %s"
@@ -93,9 +94,9 @@ class InteractivePredictor:
                                 "score:{:f}\tvecHash:{}\tcontext: {},{},{}".format(
                                     attention_obj["score"],
                                     vector_hash,
-                                    attention_obj["token1"],
+                                    attention_obj["source"],
                                     attention_obj["path"],
-                                    attention_obj["token2"],
+                                    attention_obj["target"],
                                 )
                             )
                 else:
@@ -115,6 +116,7 @@ class InteractivePredictor:
             traceback.print_exc()
             raise ValueError("Error in extracting paths")
 
+        # モデルから直接ベクトル情報を取得
         model_results = self.model.predict(predict_lines)
 
         result_list = []
@@ -123,7 +125,7 @@ class InteractivePredictor:
         assert len(code_prediction) == len(code_info_list)
 
         for method_prediction, method_info_list in zip(code_prediction, code_info_list):
-            one_method_astpaths = []
+            one_method_path_contexts = []
 
             if self.config.BEAM_WIDTH == 0:
                 print(
@@ -136,23 +138,42 @@ class InteractivePredictor:
 
                 assert len(attention_paths) == len(method_info_list)
 
+                # attention_pathsには既に単語ベクトルとASTパスベクトルが含まれている
                 for attention_obj, pc_info in zip(attention_paths, method_info_list):
-                    one_method_astpaths.append(
-                        {
-                            "source": attention_obj["token1"],
-                            "path": attention_obj["path"],
-                            "target": attention_obj["token2"],
-                            "lineColumns": pc_info.lineColumns,
-                            "attention": attention_obj["score"],
-                            "vector": attention_obj["vector"],
-                        }
-                    )
+                    # eye2vec/context_model.pyと整合性を取るため辞書形式で返す
+                    import numpy as np
+
+                    # numpy配列の型を保持して辞書作成
+                    path_context_dict = {
+                        "lineColumns": pc_info.lineColumns,
+                        "source": attention_obj["source"],
+                        "target": attention_obj["target"],
+                        "path": attention_obj["path"],
+                        "attention": attention_obj["score"],
+                        "vector": np.asarray(attention_obj["vector"], dtype=np.float32),
+                        "source_vector": np.asarray(
+                            attention_obj["source_vector"], dtype=np.float32
+                        )
+                        if attention_obj["source_vector"] is not None
+                        else None,
+                        "target_vector": np.asarray(
+                            attention_obj["target_vector"], dtype=np.float32
+                        )
+                        if attention_obj["target_vector"] is not None
+                        else None,
+                        "astpath_vector": np.asarray(
+                            attention_obj["astpath_vector"], dtype=np.float32
+                        )
+                        if attention_obj["astpath_vector"] is not None
+                        else None,
+                    }
+                    one_method_path_contexts.append(path_context_dict)
 
                 result_list.append(
                     (
                         method_prediction.original_name,
                         -1,  # use -1 insted of raw_prediction.code_vector,
-                        one_method_astpaths,
+                        one_method_path_contexts,
                     )
                 )
             else:

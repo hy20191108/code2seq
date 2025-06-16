@@ -67,7 +67,7 @@ class Extractor:
             for context in contexts[: self.config.DATA_NUM_CONTEXTS]:
                 pc_info = PathContextInformation(context)
                 current_result_line_parts += [str(pc_info)]
-                pc_info_dict[(pc_info.token1, pc_info.shortPath, pc_info.token2)] = (
+                pc_info_dict[(pc_info.source, pc_info.shortPath, pc_info.target)] = (
                     pc_info
                 )
                 method_info_list.append(pc_info)

@@ -2,14 +2,13 @@ import os
 import pickle
 import shutil
 import time
-from typing import Dict, List, Tuple
 
 import numpy as np
 import tensorflow as tf
 from rouge import FilesRouge
 
 import reader
-from common import Common, ContextInfo
+from common import Common
 from config import Config
 from data.code import Code
 from data.method import Method
@@ -842,10 +841,12 @@ class Model:
             use_bias=False,
         )
 
-        return batched_embed, batched_embed
-        # return batched_embed, source_words_sum
-        # return batched_embed, path_nodes_aggregation
-        # return batched_embed, target_words_sum
+        # batched_embed is path context
+        # source_words_sum is source word
+        # path_nodes_aggregation is astpath
+        # target_words_sum is target word
+
+        return batched_embed, source_words_sum, path_nodes_aggregation, target_words_sum
 
     def build_test_graph(self, input_tensors):
         target_index = input_tensors[reader.TARGET_INDEX_KEY]
@@ -879,7 +880,12 @@ class Model:
                 trainable=False,
             )
 
-            batched_contexts, path_nodes_aggregation = self.compute_contexts(
+            (
+                batched_contexts,
+                source_words_sum,
+                path_nodes_aggregation,
+                target_words_sum,
+            ) = self.compute_contexts(
                 subtoken_vocab=subtoken_vocab,
                 nodes_vocab=nodes_vocab,
                 source_input=path_source_indices,
@@ -915,7 +921,10 @@ class Model:
             topk_values,
             target_index,
             attention_weights,
+            batched_contexts,
             path_nodes_aggregation,
+            source_words_sum,
+            target_words_sum,
         )
 
     def predict(self, predict_data_lines):
@@ -939,7 +948,10 @@ class Model:
                 self.predict_top_scores_op,
                 _,
                 self.attention_weights_op,
+                self.batched_contexts_op,
                 self.path_nodes_aggregation_op,
+                self.source_words_sum_op,
+                self.target_words_sum_op,
             ) = self.build_test_graph(reader_output)
             self.predict_source_string = reader_output[reader.PATH_SOURCE_STRINGS_KEY]
             self.predict_path_string = reader_output[reader.PATH_STRINGS_KEY]
@@ -959,7 +971,10 @@ class Model:
                 top_scores,
                 true_target_strings,
                 attention_weights,
+                batched_contexts,
                 path_nodes_aggregation,
+                source_words_sum,
+                target_words_sum,
                 path_source_string,
                 path_strings,
                 path_target_string,
@@ -969,7 +984,10 @@ class Model:
                     self.predict_top_scores_op,
                     self.predict_target_strings_op,
                     self.attention_weights_op,
+                    self.batched_contexts_op,
                     self.path_nodes_aggregation_op,
+                    self.source_words_sum_op,
+                    self.target_words_sum_op,
                     self.predict_source_string,
                     self.predict_path_string,
                     self.predict_path_target_string,
@@ -980,7 +998,10 @@ class Model:
             attention_weights: np.ndarray
 
             top_scores = np.squeeze(top_scores, axis=0)
+            batched_contexts = np.squeeze(batched_contexts, axis=0)
             path_nodes_aggregation = np.squeeze(path_nodes_aggregation, axis=0)
+            source_words_sum = np.squeeze(source_words_sum, axis=0)
+            target_words_sum = np.squeeze(target_words_sum, axis=0)
             path_source_string: np.ndarray = path_source_string.reshape(-1)
             path_strings: np.ndarray = path_strings.reshape(-1)
             path_target_string: np.ndarray = path_target_string.reshape(-1)
@@ -1001,7 +1022,19 @@ class Model:
                     self.index_to_target[idx] for idx in predicted_indices
                 ]  # (batch, target_length)
 
-            vector_list = [vector for vector in path_nodes_aggregation]
+            # 各ベクトル配列をリスト化（一貫性のため）
+            path_context_vectors = [
+                vector for vector in batched_contexts
+            ]  # パスコンテキストベクトルのリスト
+            source_vectors = [
+                vector for vector in source_words_sum
+            ]  # ソース単語ベクトルのリスト
+            target_vectors = [
+                vector for vector in target_words_sum
+            ]  # ターゲット単語ベクトルのリスト
+            astpath_vectors = [
+                vector for vector in path_nodes_aggregation
+            ]  # ASTパスベクトルのリスト
 
             if self.config.BEAM_WIDTH == 0:
                 method = self.get_method(
@@ -1009,7 +1042,10 @@ class Model:
                     path_strings,
                     path_target_string,
                     attention_weights,
-                    vector_list,
+                    path_context_vectors,  # パスコンテキストベクトルのリスト
+                    source_vectors,  # ソース単語ベクトルのリスト
+                    target_vectors,  # ターゲット単語ベクトルのリスト
+                    astpath_vectors,  # ASTパスベクトルのリスト
                 )
             else:
                 method = Method()
@@ -1030,30 +1066,50 @@ class Model:
 
     @staticmethod
     def get_method(
-        source_strings, path_strings, target_strings, attention_weights, vectors
-    ) -> List[Dict[Tuple[str, str, str], ContextInfo]]:
+        source_strings,
+        path_strings,
+        target_strings,
+        attention_weights,
+        path_context_vectors,  # パスコンテキストベクトルのリスト
+        source_vectors,  # ソース単語ベクトルのリスト (必須)
+        target_vectors,  # ターゲット単語ベクトルのリスト (必須)
+        astpath_vectors,  # ASTパスベクトルのリスト (必須)
+    ) -> Method:
         assert (
             len(source_strings)
             == len(path_strings)
             == len(target_strings)
-            == len(vectors)
+            == len(path_context_vectors)
+            == len(source_vectors)  # ソース単語ベクトルの長さも確認
+            == len(target_vectors)  # ターゲット単語ベクトルの長さも確認
+            == len(astpath_vectors)  # ASTパスベクトルの長さも確認
         )
         # attention_weights:  (time, contexts)
         method = Method()
         for time_step in attention_weights:
             predict_name = PredictName()
 
-            for source, path, target, weight, vector in zip(
-                source_strings, path_strings, target_strings, time_step, vectors
-            ):
-                pc = PathContext(
-                    Common.binary_to_string(source),
-                    Common.binary_to_string(path),
-                    Common.binary_to_string(target),
-                    weight,
-                    vector,
+            for i, (source, path, target, weight, vector) in enumerate(
+                zip(
+                    source_strings,
+                    path_strings,
+                    target_strings,
+                    time_step,
+                    path_context_vectors,
                 )
-                predict_name.append(pc)
+            ):
+                path_context_obj = PathContext(
+                    source=Common.binary_to_string(source),
+                    short_path=Common.binary_to_string(path),
+                    target=Common.binary_to_string(target),
+                    attention=weight,
+                    vector=vector,  # numpy配列のまま
+                    source_vector=source_vectors[i],  # numpy配列のまま
+                    target_vector=target_vectors[i],  # numpy配列のまま
+                    astpath_vector=astpath_vectors[i],  # numpy配列のまま
+                )
+
+                predict_name.append(path_context_obj)
 
             method.append(predict_name)
         return method
