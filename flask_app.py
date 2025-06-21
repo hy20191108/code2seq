@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Union, Tuple
 
 # Add project root to sys.path for shared imports
 project_root = Path(__file__).resolve().parents[1]
@@ -19,18 +20,18 @@ import traceback
 
 import numpy as np
 import tensorflow as tf
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 
-import _code2seq
-from config import Config
-from model import Model
+import _code2seq  # type: ignore
+from config import Config  # type: ignore
+from model import Model  # type: ignore
 
 # Initialize Flask app
 app = Flask(__name__)
 
 
 def initialize_predictor():
-    from interactive_predict import InteractivePredictor
+    from interactive_predict import InteractivePredictor  # type: ignore
 
     args = _code2seq.get_args()
     logger.info(f"Arguments: {args}")
@@ -44,10 +45,55 @@ def initialize_predictor():
 predictor = initialize_predictor()
 
 
-@app.route("/api/code2seq", methods=["POST"])
-def process_data():
+@app.route("/", methods=["GET"])
+def index():
+    """Root endpoint - returns basic server information"""
+    return jsonify({
+        "service": "code2seq",
+        "status": "running",
+        "version": "1.0.0",
+        "description": "Code2Seq sequence generation service",
+        "endpoints": {
+            "/": "Server information",
+            "/health": "Health check endpoint",
+            "/api/code2seq": "Main processing API (POST)"
+        }
+    })
+
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    """Health check endpoint"""
     try:
-        # リクエストデータの検証とログ出力
+        # Simple test code for health verification
+        test_code = "public class Test { int getValue() { return 42; } }"
+        
+        logger.info("Health check: testing predictor")
+        result = predictor.get(test_code)
+        logger.info(f"Health check: got result with {len(result) if result else 0} items")
+        
+        return jsonify({
+            "status": "healthy",
+            "service": "code2seq",
+            "predictor": "working",
+            "test_result_count": len(result) if result else 0,
+            "message": "All systems operational"
+        })
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({
+            "status": "unhealthy",
+            "service": "code2seq",
+            "error": str(e),
+            "message": "Service is experiencing issues"
+        }), 500
+
+
+@app.route("/api/code2seq", methods=["POST"])
+def process_data() -> Union[bytes, Tuple[Response, int]]:
+    """Main processing API"""
+    try:
+        # Request data validation and logging
         if not request.json:
             logger.error("No JSON data in request")
             return jsonify({"error": "No JSON data provided"}), 400
@@ -61,24 +107,24 @@ def process_data():
             f"Processing source code (length: {len(source_code)}): {source_code[:100]}..."
         )
 
-        # predictor.get()の呼び出し前のログ
+        # Call predictor.get() with logging
         logger.info("Calling predictor.get() method")
         result = predictor.get(source_code)
         logger.info(f"predictor.get() returned result type: {type(result)}")
 
-        # pickle.dumps()の呼び出し前のログ
+        # Serialize with pickle and log
         logger.info("Serializing result with pickle")
         data_binary = pickle.dumps(result)
         logger.info(f"Successfully serialized data (size: {len(data_binary)} bytes)")
 
         return data_binary
     except Exception as e:
-        # 詳細なエラー情報を出力
+        # Detailed error information
         error_trace = traceback.format_exc()
         logger.error(f"Error processing data: {e}")
         logger.error(f"Full traceback:\n{error_trace}")
 
-        # どの段階でエラーが発生したかを特定
+        # Identify which stage the error occurred
         if "predictor.get" in error_trace:
             logger.error("Error occurred in predictor.get() method")
         elif "pickle.dumps" in error_trace:
